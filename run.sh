@@ -1,4 +1,4 @@
-#!/bin/bsah
+#!/bin/bash
 
 # ./run.sh <mode> <dataset> <cuda>
 mode=$1    # train, test
