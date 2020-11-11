@@ -4,23 +4,16 @@ class BertEmbedding(nn.Module):
     
     '''squeeze strategy: 1. first; 2. first-m; 3. average'''
     
-    def __init__(self, m=0, lang='zh'):
+    def __init__(self):
         super(BertEmbedding, self).__init__()
-        model_name = 'bert-base-chinese' if lang == 'zh' else 'bert-base-uncased'
-        self.model = BertModel.from_pretrained(model_name)
-        self.m = m
+        self.model = BertModel.from_pretrained('bert-base-chinese')
 
-    def forward(self, ids, attn_mask, strategy='first'):
+    def forward(self, ids, token_type_ids, attn_mask):
         '''convert ids to embedding tensor; Return: [B, 768]'''
-        embd = self.model(ids, attention_mask=attn_mask)[0]    # [B, S, 768]
-        if strategy == 'first':
-            rest = embd[:, 0, :]
-        elif strategy == 'first-m':
-            rest = embd[:, :self.m, :]    # [B, M, 768]
-        elif strategy == 'average':
-            rest = embd.mean(dim=1)    # [B, 768]
-        else:
-            raise Exception(f'[!] Unknow squeeze strategy {self.squeeze_strategy}')
+        embd = self.model(
+            ids, token_type_ids=token_type_ids, attention_mask=attn_mask
+        )[0]    # [B, S, 768]
+        rest = embd[:, 0, :]
         return rest
     
 class BERTBiEncoder(nn.Module):
@@ -34,24 +27,24 @@ class BERTBiEncoder(nn.Module):
         self.ctx_encoder = BertEmbedding(lang=lang)
         self.can_encoder = BertEmbedding(lang=lang)
         
-    def _encode(self, cid, rid, cid_mask, rid_mask):
-        cid_rep = self.ctx_encoder(cid, cid_mask)
-        rid_rep = self.can_encoder(rid, rid_mask)
+    def _encode(self, cid, rid, tcid, trid, cid_mask, rid_mask):
+        cid_rep = self.ctx_encoder(cid, tcid, cid_mask)
+        rid_rep = self.can_encoder(rid, trid, rid_mask)
         return cid_rep, rid_rep
     
     @torch.no_grad()
-    def predict(self, cid, rid, rid_mask):
+    def predict(self, cid, rid, trid, rid_mask):
         batch_size = rid.shape[0]
-        cid_rep, rid_rep = self._encode(cid.unsqueeze(0), rid, None, rid_mask)
+        cid_rep, rid_rep = self._encode(cid.unsqueeze(0), rid, None, trid, None, rid_mask)
         cid_rep = cid_rep.squeeze(0)    # [768]
         # cid_rep/rid_rep: [768], [B, 768]
         dot_product = torch.matmul(cid_rep, rid_rep.t())  # [B]
         return dot_product
         
-    def forward(self, cid, rid, cid_mask, rid_mask):
+    def forward(self, cid, rid, tcid, trid, cid_mask, rid_mask):
         batch_size = cid.shape[0]
         assert batch_size > 1, f'[!] batch size must bigger than 1, cause other elements in the batch will be seen as the negative samples'
-        cid_rep, rid_rep = self._encode(cid, rid, cid_mask, rid_mask)
+        cid_rep, rid_rep = self._encode(cid, rid, tcid, trid, cid_mask, rid_mask)
         # cid_rep/rid_rep: [B, 768]
         dot_product = torch.matmul(cid_rep, rid_rep.t())  # [B, B]
         # use half for supporting the apex
@@ -64,9 +57,10 @@ class BERTBiEncoder(nn.Module):
         loss = (-loss.sum(dim=1)).mean()
         return loss, acc
     
-class BERTBiEncoderAgent:
+class BERTBiEncoderAgent(RetrievalBaseAgent):
     
     def __init__(self, multi_gpu, total_step, run_mode='train', local_rank=0):
+        super(BERTBiEncoderAgent, self).__init__()
         try:
             self.gpu_ids = list(range(len(multi_gpu.split(',')))) 
         except:
@@ -85,7 +79,7 @@ class BERTBiEncoderAgent:
             'total_step': total_step,
         }
         self.vocab = BertTokenizer.from_pretrained(self.args['vocab_file'])
-        self.model = BERTBiEncoder(lang=self.args['lang'],)
+        self.model = BERTBiEncoder()
         if torch.cuda.is_available():
             self.model.cuda()
         if run_mode == 'train':
@@ -107,17 +101,26 @@ class BERTBiEncoderAgent:
                 self.model, device_ids=[local_rank], output_device=local_rank,
                 find_unused_parameters=True,
             )
+        else:
+            # faster
+            self.model, self.optimizer = amp.initialize(
+                self.model, 
+                self.optimizer,
+                opt_level=self.args['amp_level'],
+            )
+            self.model = nn.parallel.DistributedDataParallel(
+                self.model, device_ids=[local_rank], output_device=local_rank,
+                find_unused_parameters=True,
+            )
         print(self.args)
         
     def train_model(self, train_iter, mode='train', recoder=None, idx_=0):
         self.model.train()
         total_loss, total_acc, batch_num = 0, 0, 0
         pbar = tqdm(train_iter)
-        correct, s = 0, 0
         for idx, batch in enumerate(pbar):
             self.optimizer.zero_grad()
-            cid, rid, cid_mask, rid_mask = batch
-            loss, acc = self.model(cid, rid, cid_mask, rid_mask)
+            loss, acc = self.model(*batch)
             with amp.scale_loss(loss, self.optimizer) as scaled_loss:
                 scaled_loss.backward()
             clip_grad_norm_(amp.master_params(self.optimizer), self.args['grad_clip'])
@@ -145,11 +148,11 @@ class BERTBiEncoderAgent:
         r1, r2, r5, r10, counter, mrr = 0, 0, 0, 0, 0, []
         pbar = tqdm(test_iter)
         for idx, batch in tqdm(list(enumerate(pbar))):                
-            cid, rids, rids_mask = batch
+            cid, rids, trids, rids_mask = batch
             batch_size = len(rids)
             if batch_size != self.args['samples']:
                 continue
-            dot_product = self.model.predict(cid, rids, rids_mask).cpu()    # [B]
+            dot_product = self.model.predict(cid, rids, trids, rids_mask).cpu()    # [B]
             r1 += (torch.topk(dot_product, 1, dim=-1)[1] == 0).sum().item()
             r2 += (torch.topk(dot_product, 2, dim=-1)[1] == 0).sum().item()
             r5 += (torch.topk(dot_product, 5, dim=-1)[1] == 0).sum().item()
@@ -166,10 +169,12 @@ class BERTBiEncoderAgent:
         print(f'r1@10: {r1}; r2@10: {r2}; r5@10: {r5}; r10@10: {r10}; mrr: {mrr}')
     
     @torch.no_grad()
-    def talk(self, msgs, topic=None):
+    def talk(self, msgs):
         self.model.eval()
-        utterances, inpt_ids, res_ids, attn_mask = self.process_utterances_biencoder(topic, msgs, max_len=self.args['max_len'])
-        output = self.model.predict(inpt_ids, res_ids, attn_mask)    # [B]
+        utterances, inpt_ids, res_ids, t_res_ids, attn_mask = self.process_utterances_biencoder(
+            msgs, max_len=self.args['max_len'],
+        )
+        output = self.model.predict(inpt_ids, res_ids, t_res_ids, attn_mask)    # [B]
         item = torch.argmax(output).item()
         msg = utterances[item]
         return msg

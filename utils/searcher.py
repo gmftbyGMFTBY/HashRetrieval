@@ -103,6 +103,6 @@ if __name__ == "__main__":
     # dataset = load_dataset_es('data/ecommerce/train.txt', 'data/ecommerce/test.txt')
     searcher = Searcher('ecommerce')
     # searcher.build(dataset)
-    rest, time_cost = searcher.search(['我喜欢你', '我最喜欢的手机品牌就是华为了，支持国货'])
+    rest, time_cost = searcher.search(['今天打算去香山转一圈', '我最喜欢的手机品牌就是华为了，支持国货'])
     print(rest)
     print(f'[!] time cost: {time_cost}')
