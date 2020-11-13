@@ -1,14 +1,22 @@
-import time, json, ipdb, faiss
+import time, json, ipdb, faiss, argparse, pickle
 from tqdm import tqdm
 import numpy as np
 from elasticsearch import Elasticsearch, helpers
 from .load_dataset import *
 
+def parser_args():
+    parser = argparse.ArgumentParser(description='')
+    parser.add_argument('--dataset', default='zh50w', type=str)
+    parser.add_argument('--mode', default='es', type=str, help='es or faiss')
+    parser.add_argument('--model', default='dual-bert', type=str, help='dual-bert or hash-bert')
+    parser.add_argument('--dim', default=768, type=int)
+    return parser.parse_args()
+
 class Searcher:
 
-    '''Real-vector (FAISS) or Term Searcher (Elasticsearch)'''
+    '''Real-vector (FAISS) or Term-Frequency Searcher (Elasticsearch)'''
 
-    def __init__(self, dataset, vector=False, binary=False, dimension=768):
+    def __init__(self, dataset, vector=False, binary=False, dimension=768, build=False):
         self.dataset, self.dimension, self.mode, self.binary = dataset, dimension, vector, binary
         if vector:
             # faiss
@@ -18,8 +26,8 @@ class Searcher:
         else:
             # elasticsearch
             self.searcher = Elasticsearch()
-            # self.searcher.indices.delete(index=dataset)
-            if not self.searcher.indices.exists(index=dataset):
+            if build:
+                self.searcher.indices.delete(index=dataset)
                 mapping = {
                     'properties': {
                         'utterance': {
@@ -80,41 +88,41 @@ class Searcher:
     def search(self, queries, topk=20):
         '''return :rest: [Queries, topk] string as the results; :time: time cost for the given batch retrieval;'''
         bt = time.time()
-        rest = self._search_faiss(queries) if self.mode else self._search_es(queries)
+        rest = self._search_faiss(queries, topk=topk) if self.mode else self._search_es(queries, topk=topk)
         et = time.time()
         return rest, round(et - bt, 4)
 
-    def save(self, path):
+    def save(self, path1, path2):
         '''only faiss need this procedure'''
         if self.binary:
-            faiss.write_index_binary(self.searcher, path)
+            faiss.write_index_binary(self.searcher, path1)
         else:
-            faiss.write_index(self.searcher, path)
+            faiss.write_index(self.searcher, path2)
+        # save the text
+        with open(path2, 'wb') as f:
+            pickle.dump(self.corpus, f)
 
-    def load(self, path):
+    def load(self, path1, path2):
         '''only faiss need this procedure'''
         if self.binary:
-            self.searcher = faiss.read_index_binary(path)
+            self.searcher = faiss.read_index_binary(path1)
         else:
-            self.searcher = faiss.read_index(path)
+            self.searcher = faiss.read_index(path1)
+        with open(path2, 'rb') as f:
+            self.corpus = pickle.load(f)
 
 if __name__ == "__main__":
-    # elasticsearch test
-    '''
-    dataset = load_dataset_es('data/ecommerce/train.txt', 'data/ecommerce/test.txt')
-    searcher = Searcher('ecommerce')
-    searcher.build(dataset)
-    rest, time_cost = searcher.search(['今天打算去香山转一圈', '我最喜欢的手机品牌就是华为了，支持国货'])
-    print(rest)
-    print(f'[!] time cost: {time_cost}')
-    '''
-    
-    # dense vector test
-    dataset = load_dataset_faiss('rest/ecommerce/dual-bert/rest.pt')
-    searcher = Searcher('ecommerce', vector=True, dimension=768)
-    searcher.build(dataset)
-    utterances = ['今天打算去香山转一圈', '我最喜欢的手机品牌就是华为了，支持国货']
-    vectors = 
-    rest, time_cost = searcher.search(vectors)
-    print(rest)
-    print(f'[!] time cost: {time_cost}')
+    args = vars(parser_args())
+    dataset_name, mode, model, dim = args['dataset'], args['mode'], args['model'], args['dim']
+    if mode == 'es':
+        dataset = load_dataset_es(f'data/{dataset_name}/train.txt', f'data/{dataset_name}/test.txt')
+        searcher = Searcher(dataset_name, build=True)
+        searcher.build(dataset)
+        print(f'[!] build elasticsearch index {dataset} over')
+    else:
+        dataset = load_dataset_faiss(f'rest/{dataset_name}/{model}/rest.pt')
+        binary = False if model == 'dual-bert' else True
+        searcher = Searcher(dataset_name, vector=True, binary=binary, dimension=dim)
+        searcher.build(dataset)
+        searcher.save(f'data/{dataset_name}/{model}.faiss_ckpt', f'data/{dataset_name}/{model}.corpus_ckpt')
+        print(f'[!] build faiss index {dataset_name} over')

@@ -116,6 +116,8 @@ venv.bak/
 *.tgz
 *.ann
 *.gen
+*.faiss_ckpt
+*.corpus_ckpt
 *.tar.gz
 .ipynb_checkpoints
 tblogs

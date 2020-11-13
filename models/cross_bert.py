@@ -136,16 +136,3 @@ class BERTRetrievalAgent(RetrievalBaseAgent):
                 counter += 1
         r1, r2, r5, r10, mrr = round(r1/counter, 4), round(r2/counter, 4), round(r5/counter, 4), round(r10/counter, 4), round(np.mean(mrr), 4)
         print(f'r1@10: {r1}; r2@10: {r2}; r5@10: {r5}; r10@10: {r10}; mrr: {mrr}')
-
-    @torch.no_grad()
-    def talk(self, msgs, topic=None):
-        self.model.eval()
-        utterances_, inpt_ids, token_type_ids, attn_mask = self.process_utterances(
-            topic, msgs, max_len=self.args['max_len']
-        )
-        # prepare the data input
-        output = self.model(inpt_ids, token_type_ids, attn_mask)    # [B, 2]
-        output = F.softmax(output, dim=-1)[:, 1]    # [B]
-        item = torch.argmax(output).item()
-        msg = utterances_[item]
-        return msg

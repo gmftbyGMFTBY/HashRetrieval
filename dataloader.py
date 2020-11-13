@@ -88,6 +88,26 @@ def bert_embd_read(paths):
     return dataset
 
 # ========== Dataset ========== #
+class UtteranceTextDataset(Dataset):
+    
+    '''pure text for agent.py to test (only test mode)'''
+    
+    def __init__(self, path, max_len=300):
+        self.max_len = max_len
+        data = dual_bert_read_train(path)
+        self.data = data
+        
+    def __len__(self):
+        return len(self.data)
+    
+    def __getitem__(self, i):
+        ctx, res = self.data[i]
+        return ctx, res
+    
+    def collate(self, batch):
+        ctxs, reses = [i[0] for i in batch], [i[1] for i in batch]
+        return ctxs, reses
+
 class BertEmbeddingDataset(Dataset):
     
     '''use dual-bert model (response encoder) to generate the embedding for utterances (off-line saving)'''
@@ -317,6 +337,14 @@ def load_dataset(args):
             return load_bert_ir_dataset(args)
         else:
             raise Exception()
+            
+def load_utterance_text_dataset(args):
+    '''called by agent.py'''
+    data = UtteranceTextDataset(f'data/{args["dataset"]}/test.txt')
+    iter_ = DataLoader(
+        data, shuffle=False, batch_size=args['batch_size'], collate_fn=data.collate,
+    )
+    return iter_
 
 def load_bert_irbi_dataset(args):
     path = f'data/{args["dataset"]}/{args["mode"]}.txt'

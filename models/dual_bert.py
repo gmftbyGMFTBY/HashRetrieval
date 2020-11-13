@@ -43,6 +43,11 @@ class BERTBiEncoder(nn.Module):
     def inference(self, ids, attn_mask):
         rid_rep = self.can_encoder(ids, attn_mask)
         return rid_rep
+    
+    @torch.no_grad()
+    def get_q(self, ids, attn_mask):
+        cid_rep = self.ctx_encoder(ids, attn_mask)
+        return cid_rep
         
     def forward(self, cid, rid, cid_mask, rid_mask):
         batch_size = cid.shape[0]
@@ -180,14 +185,3 @@ class BERTBiEncoderAgent(RetrievalBaseAgent):
             
         r1, r2, r5, r10, mrr = round(r1/counter, 4), round(r2/counter, 4), round(r5/counter, 4), round(r10/counter, 4), round(np.mean(mrr), 4)
         print(f'r1@10: {r1}; r2@10: {r2}; r5@10: {r5}; r10@10: {r10}; mrr: {mrr}')
-    
-    @torch.no_grad()
-    def talk(self, msgs):
-        self.model.eval()
-        utterances, inpt_ids, res_ids, t_res_ids, attn_mask = self.process_utterances_biencoder(
-            msgs, max_len=self.args['max_len'],
-        )
-        output = self.model.predict(inpt_ids, res_ids, t_res_ids, attn_mask)    # [B]
-        item = torch.argmax(output).item()
-        msg = utterances[item]
-        return msg
