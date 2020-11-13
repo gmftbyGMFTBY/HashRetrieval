@@ -1,4 +1,5 @@
 from .header import *
+from .base import RetrievalBaseAgent
 
 class BERTRetrieval(nn.Module):
 
@@ -72,7 +73,7 @@ class BERTRetrievalAgent(RetrievalBaseAgent):
                 self.model, device_ids=[local_rank], output_device=local_rank,
                 find_unused_parameters=True,
             )
-        print(self.args)
+        pprint.pprint(self.args)
 
     def train_model(self, train_iter, mode='train', recoder=None, idx_=0):
         self.model.train()
@@ -82,7 +83,7 @@ class BERTRetrievalAgent(RetrievalBaseAgent):
         for idx, batch in enumerate(pbar):
             cids, tids, attn_mask, label = batch
             self.optimizer.zero_grad()
-            output = self.model(cid, token_type_ids, attn_mask)    # [B, 2]
+            output = self.model(cids, tids, attn_mask)    # [B, 2]
             loss = self.criterion(output, label.view(-1))
             
             with amp.scale_loss(loss, self.optimizer) as scaled_loss:
@@ -110,7 +111,7 @@ class BERTRetrievalAgent(RetrievalBaseAgent):
         return round(total_loss / batch_num, 4)
 
     @torch.no_grad()
-    def test_model(self, test_iter, path):
+    def test_model(self, test_iter):
         self.model.eval()
         r1, r2, r5, r10, counter, mrr = 0, 0, 0, 0, 0, []
         pbar = tqdm(test_iter)

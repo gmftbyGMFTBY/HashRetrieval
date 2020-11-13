@@ -22,7 +22,9 @@ def load_dataset_es(train_path, test_path):
     print(f'[!] collect {len(dataset)} samples from {train_path} and {test_path}')
     return dataset
 
-def load_dataset_faiss(train_path, test_path):
+def load_dataset_faiss(path):
     '''train_data or test_data: [(utterance, vector), ...]'''
-    train_data, test_data = torch.load(train_path), torch.load(test_path)
-    return train_data + test_data
+    dataset_matrix, dataset_text = torch.load(path)
+    dataset = [(m, t) for m, t in zip(dataset_matrix, dataset_text)]
+    print(f'[!] collect {len(dataset)} samples from {path}')
+    return dataset

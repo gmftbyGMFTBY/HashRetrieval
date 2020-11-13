@@ -1,4 +1,6 @@
 from header import *
+from models import load_model
+from dataloader import load_dataset
 
 def parser_args():
     parser = argparse.ArgumentParser(description='train parameters')
@@ -18,7 +20,7 @@ def main(**args):
         torch.cuda.set_device(args['local_rank'])
         torch.distributed.init_process_group(backend='nccl', init_method='env://')
         
-        train_iter, agent = load_dataset(args), load_model(**args)
+        train_iter, agent = load_dataset(args), load_model(args)
         
         sum_writer = SummaryWriter(log_dir=f'rest/{args["dataset"]}/{args["model"]}')
         for i in tqdm(range(args['epoch'])):
@@ -34,10 +36,16 @@ def main(**args):
     elif args['mode'] == 'test':
         test_iter, agent = load_dataset(args), load_model(args)
         agent.load_model(f'ckpt/{args["dataset"]}/{args["model"]}/best.pt')
-        rest_path = f'rest/{args["dataset"]}/{args["model"]}/rest.txt'
-        agent.test_model(test_iter, rest_path)
+        agent.test_model(test_iter)
     elif args['mode'] == 'inference':
-        pass
+        torch.cuda.set_device(args['local_rank'])
+        torch.distributed.init_process_group(backend='nccl', init_method='env://')
+        
+        iter_, agent = load_dataset(args), load_model(args)
+        
+        agent.load_model(f'ckpt/{args["dataset"]}/{args["model"]}/best.pt')
+        path = f'rest/{args["dataset"]}/{args["model"]}/rest_{args["local_rank"]}.pt'
+        agent.inference(iter_, path)
     else:
         raise Exception(f'[!] cannot find the mode: {args["mode"]}')
 

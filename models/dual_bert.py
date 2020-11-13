@@ -1,4 +1,5 @@
 from .header import *
+from .base import RetrievalBaseAgent
 
 class BertEmbedding(nn.Module):
     
@@ -8,47 +9,49 @@ class BertEmbedding(nn.Module):
         super(BertEmbedding, self).__init__()
         self.model = BertModel.from_pretrained('bert-base-chinese')
 
-    def forward(self, ids, token_type_ids, attn_mask):
+    def forward(self, ids, attn_mask):
         '''convert ids to embedding tensor; Return: [B, 768]'''
-        embd = self.model(
-            ids, token_type_ids=token_type_ids, attention_mask=attn_mask
-        )[0]    # [B, S, 768]
+        embd = self.model(ids, attention_mask=attn_mask)[0]    # [B, S, 768]
         rest = embd[:, 0, :]
         return rest
     
 class BERTBiEncoder(nn.Module):
     
     '''During training, the other elements in the batch are seen as the negative samples, which will lead to the fast training speed. More details can be found in paper: https://arxiv.org/pdf/1905.01969v2.pdf
-    reference: https://github.com/chijames/Poly-Encoder/blob/master/encoder.py
-    '''
+    reference: https://github.com/chijames/Poly-Encoder/blob/master/encoder.py'''
     
-    def __init__(self, lang='zh'):
+    def __init__(self):
         super(BERTBiEncoder, self).__init__()
-        self.ctx_encoder = BertEmbedding(lang=lang)
-        self.can_encoder = BertEmbedding(lang=lang)
+        self.ctx_encoder = BertEmbedding()
+        self.can_encoder = BertEmbedding()
         
-    def _encode(self, cid, rid, tcid, trid, cid_mask, rid_mask):
-        cid_rep = self.ctx_encoder(cid, tcid, cid_mask)
-        rid_rep = self.can_encoder(rid, trid, rid_mask)
+    def _encode(self, cid, rid, cid_mask, rid_mask):
+        cid_rep = self.ctx_encoder(cid, cid_mask)
+        rid_rep = self.can_encoder(rid, rid_mask)
         return cid_rep, rid_rep
     
     @torch.no_grad()
-    def predict(self, cid, rid, trid, rid_mask):
+    def predict(self, cid, rid, rid_mask):
         batch_size = rid.shape[0]
-        cid_rep, rid_rep = self._encode(cid.unsqueeze(0), rid, None, trid, None, rid_mask)
+        cid_rep, rid_rep = self._encode(cid.unsqueeze(0), rid, None, rid_mask)
         cid_rep = cid_rep.squeeze(0)    # [768]
         # cid_rep/rid_rep: [768], [B, 768]
         dot_product = torch.matmul(cid_rep, rid_rep.t())  # [B]
         return dot_product
+    
+    @torch.no_grad()
+    def inference(self, ids, attn_mask):
+        rid_rep = self.can_encoder(ids, attn_mask)
+        return rid_rep
         
-    def forward(self, cid, rid, tcid, trid, cid_mask, rid_mask):
+    def forward(self, cid, rid, cid_mask, rid_mask):
         batch_size = cid.shape[0]
         assert batch_size > 1, f'[!] batch size must bigger than 1, cause other elements in the batch will be seen as the negative samples'
-        cid_rep, rid_rep = self._encode(cid, rid, tcid, trid, cid_mask, rid_mask)
+        cid_rep, rid_rep = self._encode(cid, rid, cid_mask, rid_mask)
         # cid_rep/rid_rep: [B, 768]
         dot_product = torch.matmul(cid_rep, rid_rep.t())  # [B, B]
         # use half for supporting the apex
-        mask = to_cuda(torch.eye(batch_size)).half()    # [B, B]
+        mask = torch.eye(batch_size).half().cuda()    # [B, B]
         # calculate accuracy
         acc_num = (F.softmax(dot_product, dim=-1).max(dim=-1)[1] == torch.LongTensor(torch.arange(batch_size)).cuda()).sum().item()
         acc = acc_num / batch_size
@@ -72,7 +75,7 @@ class BERTBiEncoderAgent(RetrievalBaseAgent):
             'talk_samples': 256,
             'vocab_file': 'bert-base-chinese',
             'samples': 10,
-            'model': 'bert-base-chinese',,
+            'model': 'bert-base-chinese',
             'amp_level': 'O2',
             'local_rank': local_rank,
             'warmup_steps': int(0.1 * total_step),
@@ -101,18 +104,13 @@ class BERTBiEncoderAgent(RetrievalBaseAgent):
                 self.model, device_ids=[local_rank], output_device=local_rank,
                 find_unused_parameters=True,
             )
-        else:
-            # faster
-            self.model, self.optimizer = amp.initialize(
-                self.model, 
-                self.optimizer,
-                opt_level=self.args['amp_level'],
-            )
+        elif run_mode == 'inferance':
+            self.model = amp.initialize(self.model, opt_level=self.args['amp_level'])
             self.model = nn.parallel.DistributedDataParallel(
                 self.model, device_ids=[local_rank], output_device=local_rank,
                 find_unused_parameters=True,
             )
-        print(self.args)
+        pprint.pprint(self.args)
         
     def train_model(self, train_iter, mode='train', recoder=None, idx_=0):
         self.model.train()
@@ -140,19 +138,34 @@ class BERTBiEncoderAgent(RetrievalBaseAgent):
         recoder.add_scalar(f'train-whole/Loss', total_loss/batch_num, idx_)
         recoder.add_scalar(f'train-whole/Acc', total_acc/batch_num, idx_)
         return round(total_loss / batch_num, 4)
+    
+    @torch.no_grad()
+    def inference(self, iter_, path):
+        '''only use the response encoder'''
+        self.model.eval()
+        pbar = tqdm(list(enumerate(iter_)))
+        collections_matrix, collections_text = [], []
+        for idx, batch in pbar:
+            ids, attn_mask, texts = batch
+            rep = self.model.inference(ids, attn_mask).cpu().numpy()    # [B, E]
+            collections_matrix.append(rep)
+            collections_text.extend(texts)
+        collections_matrix = np.concatenate(collections_matrix)    # [S, E]
+        torch.save((collections_matrix, collections_text), path)
+        print(f'[!] inference all the utterances over and save into {path}')
         
     @torch.no_grad()
-    def test_model(self, test_iter, mode='test', recoder=None, idx_=0):
+    def test_model(self, test_iter):
         '''there is only one context in the batch, and response are the candidates that are need to reranked; batch size is the self.args['samples']; the groundtruth is the first one. For douban300w and E-Commerce datasets'''
         self.model.eval()
         r1, r2, r5, r10, counter, mrr = 0, 0, 0, 0, 0, []
-        pbar = tqdm(test_iter)
-        for idx, batch in tqdm(list(enumerate(pbar))):                
-            cid, rids, trids, rids_mask = batch
+        pbar = tqdm(list(enumerate(test_iter)))
+        for idx, batch in pbar:                
+            cid, rids, rids_mask = batch
             batch_size = len(rids)
             if batch_size != self.args['samples']:
                 continue
-            dot_product = self.model.predict(cid, rids, trids, rids_mask).cpu()    # [B]
+            dot_product = self.model.predict(cid, rids, rids_mask).cpu()    # [B]
             r1 += (torch.topk(dot_product, 1, dim=-1)[1] == 0).sum().item()
             r2 += (torch.topk(dot_product, 2, dim=-1)[1] == 0).sum().item()
             r5 += (torch.topk(dot_product, 5, dim=-1)[1] == 0).sum().item()

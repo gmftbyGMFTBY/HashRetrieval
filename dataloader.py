@@ -1,5 +1,8 @@
-import torch
+import torch, os, ipdb
 from torch.utils.data import Dataset, DataLoader
+from transformers import BertTokenizer
+from tqdm import tqdm
+from torch.nn.utils.rnn import pad_sequence
 
 # ========== File loader ========== #
 def dual_bert_read_train(path):
@@ -9,7 +12,7 @@ def dual_bert_read_train(path):
         for line in f.readlines():
             line = line.strip().split('\t')
             label, ctx, res = int(line[0]), line[1:-1], line[-1]
-            ctx = [''.join(i.split()) for i in ctx]
+            ctx = ' [SEP] '.join([''.join(i.split()) for i in ctx])
             res = ''.join(res.split())
             if label == 1:
                 dataset.append((ctx, res))
@@ -29,7 +32,7 @@ def dual_bert_read_test(path, samples=10):
                     assert label == 1
                 label1 += label
                 assert label1 <= 1
-                ctx = [''.join(i.split()) for i in ctx]
+                ctx = ' [SEP] '.join([''.join(i.split()) for i in ctx])
                 res = ''.join(res.split()) 
                 session.append((label, res))
                 step += 1
@@ -44,10 +47,10 @@ def bert_read_train(path):
             line = line.strip().split('\t')
             label, utterances = int(line[0]), line[1:]
             utterance = [''.join(i.split()) for i in utterances]
-            dataset.append((label, utterance))
+            dataset.append((label, (' [SEP] '.join(utterance[:-1]), utterance[-1])))
         return dataset
 
-def bert_read_test(path):
+def bert_read_test(path, samples=10):
     with open(path) as f:
         dataset = []
         lines = f.readlines()
@@ -59,7 +62,7 @@ def bert_read_test(path):
                 label1 += label
                 assert label1 <= 1
                 utterance = [''.join(i.split()) for i in utterances]
-                session.append((label, utterance))
+                session.append((label, (' [SEP] '.join(utterance[:-1]), utterance[-1])))
             dataset.append(session)
         return dataset
     
@@ -71,7 +74,7 @@ def bert_embd_read(paths):
             for line in f.readlines():
                 line = line.strip().split('\t')
                 label, us = int(line[0]), line[1:]
-                if label == '1':
+                if label == 1:
                     us = [''.join(i.split()) for i in us]
                 else:
                     us = [''.join(us[-1].split())]
@@ -80,23 +83,25 @@ def bert_embd_read(paths):
     dataset = set()
     for path in paths:
         dataset |= _load(path)
-    return list(dataset)
+    dataset = list(dataset)
+    print(f'[!] collect {len(dataset)} samples from {paths}')
+    return dataset
 
 # ========== Dataset ========== #
 class BertEmbeddingDataset(Dataset):
     
     '''use dual-bert model (response encoder) to generate the embedding for utterances (off-line saving)'''
     
-    def __init__(self, path, max_len=300):
+    def __init__(self, paths, max_len=300):
         self.max_len = max_len
         self.vocab = BertTokenizer.from_pretrained('bert-base-chinese')
         self.pad = self.vocab.convert_tokens_to_ids('[PAD]')
-        self.pp_path = f'{os.path.splitext(path)[0]}_dual.pt'
+        self.pp_path = f'{os.path.splitext(paths[0])[0]}_embd.pt'
         if os.path.exists(self.pp_path):
             self.data = torch.load(self.pp_path)
             print(f'[!] load preprocessed file from {self.pp_path}')
             return None
-        data = bert_embd_read(path)
+        data = bert_embd_read(paths)
         self.data = []
         for utterance in tqdm(data):
             item = self._length_limit(self.vocab.encode(utterance))
@@ -156,27 +161,17 @@ class RetrievalDataset(Dataset):
             for context, response in tqdm(list(zip(contexts, responses))):
                 item = self.vocab.batch_encode_plus([context, response])
                 cid, rid = item['input_ids']
-                tcid, trid = item['token_type_ids']
-                cid, tcid = self._length_limit(cid), self._length_limit(tcid)
-                rid, trid = self._length_limit(rid), self._length_limit(trid)
-                self.data.append({
-                    'cid': cid, 'rid': rid, 
-                    'tcid': tcid, 'trid': trid,
-                })
+                cid, rid = self._length_limit(cid), self._length_limit(rid)
+                self.data.append({'cid': cid, 'rid': rid})
         else:
             # the label 1 must in the index 0 position
             for context, session in tqdm(data):
-                labels, responses = [i[0] for i in session], [i[1] for i in session]
-                item = self.vocab.batch_encode_plus([context, responses])
+                responses = [i[1] for i in session]
+                item = self.vocab.batch_encode_plus([context] + responses)
                 cid, rids = item['input_ids'][0], item['input_ids'][1:]
-                tcid, trids = item['token_type_ids'][0], item['token_type_ids'][1:]
-                cid, tcid = self._length_limit(cid), self._length_limit(tcid)
-                rids, trids = [self._length_limit(i) for i in rids], [self._length_limit(i) for i in trids]
-                self.data.append({
-                    'cid': cid, 'rids': rids,
-                    'tcid': tcid, 'trids': trids,
-                })
-        self.save(self.pp_path)
+                cid, rids = self._length_limit(cid), [self._length_limit(i) for i in rids]
+                self.data.append({'cid': cid, 'rids': rids})
+        self.save()
                 
     def _length_limit(self, ids):
         if len(ids) > self.max_len:
@@ -190,12 +185,10 @@ class RetrievalDataset(Dataset):
         bundle = self.data[i]
         if self.mode == 'train':
             cid, rid = torch.LongTensor(bundle['cid']), torch.LongTensor(bundle['rid'])
-            tcid, trid = torch.LongTensor(bundle['tcid']), torch.LongTensor(bundle['trid'])
-            return cid, rid, tcid, trid
+            return cid, rid
         else:
             cid, rids = torch.LongTensor(bundle['cid']), [torch.LongTensor(i) for i in bundle['rids']]
-            tcid, trid = torch.LongTensor(bundle['tcid']), [torch.LongTensor(i) for i in bundle['trids']]
-            return cid, rid, tcid, trid
+            return cid, rids
     
     def save(self):
         torch.save(self.data, self.pp_path)
@@ -210,32 +203,31 @@ class RetrievalDataset(Dataset):
         
     def collate(self, batch):
         if self.mode == 'train':
-            cid, rid, tcid, trid = [i[0] for i in batch], [i[1] for i in batch], [i[2] for i in batch], [i[3] for i in batch]
+            cid, rid = [i[0] for i in batch], [i[1] for i in batch]
             cid = pad_sequence(cid, batch_first=True, padding_value=self.pad)
             rid = pad_sequence(rid, batch_first=True, padding_value=self.pad)
-            tcid = pad_sequence(tcid, batch_first=True, padding_value=self.pad)
-            trid = pad_sequence(trid, batch_first=True, padding_value=self.pad)
             cid_mask = self.generate_mask(cid)
             rid_mask = self.generate_mask(rid)
             if torch.cuda.is_available():
-                cid, rid, tcid, trid, cid_mask, rid_mask = cid.cuda(), rid.cuda(), tcid.cuda(), trid.cuda(), cid_mask.cuda(), rid_mask.cuda()
-            return cid, rid, tcid, trid, cid_mask, rid_mask
+                cid, rid, cid_mask, rid_mask = cid.cuda(), rid.cuda(), cid_mask.cuda(), rid_mask.cuda()
+            return cid, rid, cid_mask, rid_mask
         else:
             assert len(batch) == 1, f'[!] test bacth size must be 1'
-            cid, rids, tcid, trids = batch[0]
+            cid, rids = batch[0]
             rids = pad_sequence(rids, batch_first=True, padding_value=self.pad)
-            trids = pad_sequence(trids, batch_first=True, padding_value=self.pad)
             rids_mask = self.generate_mask(rids)
             if torch.cuda.is_available():
-                cid, rids, trids, rids_mask = cid.cuda(), rids.cuda(), trids.cuda(), rids_mask.cuda()
-            return cid, rids, trids, rids_mask
+                cid, rids, rids_mask = cid.cuda(), rids.cuda(), rids_mask.cuda()
+            return cid, rids, rids_mask
         
 class BERTIRDataset(Dataset):
 
     def __init__(self, path, mode='train', max_len=300):
         self.mode, self.max_len = mode, max_len 
-        dataset = bert_read_train(path)
-        responses = [i[1] for i in data]
+        if mode == 'train':
+            dataset = bert_read_train(path)
+        else:
+            dataset = bert_read_test(path)
         self.vocab = BertTokenizer.from_pretrained('bert-base-chinese')
         self.pad = self.vocab.convert_tokens_to_ids('[PAD]')
         self.pp_path = f'{os.path.splitext(path)[0]}_cross.pt'
@@ -247,10 +239,10 @@ class BERTIRDataset(Dataset):
         
         if mode == 'train':
             for label, utterance in tqdm(dataset):
-                item = self.vocab.batch_encode_plus(utterance)
+                item = self.vocab.batch_encode_plus([utterance])
                 self.data.append({
-                    'ids': self._length_limit(item['input_ids']),
-                    'tids': self._length_limit(item['token_type_ids']),
+                    'ids': self._length_limit(item['input_ids'][0]),
+                    'tids': self._length_limit(item['token_type_ids'][0]),
                     'label': label,
                 })
         else:
@@ -261,7 +253,7 @@ class BERTIRDataset(Dataset):
                     'ids': self._length_limit(item['input_ids']),
                     'tids': self._length_limit(item['token_type_ids']),
                 })
-        self.save(self.pp_path)
+        self.save()
         
     def save(self):
         torch.save(self.data, self.pp_path)
@@ -361,13 +353,14 @@ def load_bert_ir_dataset(args):
 
 def load_bert_embd_dataset(args):
     '''not for training, just for inferencing'''
-    path = f'data/{args["dataset"]}/{args["mode"]}.txt'
-    data = BertEmbeddingDataset(path, max_len=args['max_len'])
+    paths = [f'data/{args["dataset"]}/train.txt', f'data/{args["dataset"]}/test.txt']
+    data = BertEmbeddingDataset(paths, max_len=args['max_len'])
     train_sampler = torch.utils.data.distributed.DistributedSampler(data)
     iter_ = DataLoader(
         data, shuffle=False, batch_size=args['batch_size'], 
         collate_fn=data.collate, sampler=train_sampler,
     )
+    args['total_steps'] = 0
     return iter_
 
 if __name__ == "__main__":

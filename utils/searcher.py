@@ -33,9 +33,9 @@ class Searcher:
                 self.searcher.indices.put_mapping(body=mapping, index=dataset)      
 
     def _build_faiss(self, dataset):
-        '''dataset is a list of tuple (utterance, vector)'''
-        matrix = np.array([i[1] for i in dataset])    # [N, dimension]
-        self.corpus = [i[0] for i in dataset]     # [N]
+        '''dataset is a list of tuple (vector, utterance)'''
+        matrix = np.array([i[0] for i in dataset])    # [N, dimension]
+        self.corpus = [i[1] for i in dataset]     # [N]
         assert matrix.shape[1] == self.dimension
         self.searcher.add(matrix)
         return self.searcher.ntotal
@@ -55,7 +55,7 @@ class Searcher:
 
     def build(self, dataset):
         num = self._build_faiss(dataset) if self.mode else self._build_es(dataset)
-        print(f'[!] init the collections with {num} samples')
+        print(f'[!] build the collections with {num} samples')
 
     def _search_faiss(self, vector, topk=20):
         '''batch search; vector: [bsz, dimension]'''
@@ -100,9 +100,21 @@ class Searcher:
 
 if __name__ == "__main__":
     # elasticsearch test
-    # dataset = load_dataset_es('data/ecommerce/train.txt', 'data/ecommerce/test.txt')
+    '''
+    dataset = load_dataset_es('data/ecommerce/train.txt', 'data/ecommerce/test.txt')
     searcher = Searcher('ecommerce')
-    # searcher.build(dataset)
+    searcher.build(dataset)
     rest, time_cost = searcher.search(['今天打算去香山转一圈', '我最喜欢的手机品牌就是华为了，支持国货'])
+    print(rest)
+    print(f'[!] time cost: {time_cost}')
+    '''
+    
+    # dense vector test
+    dataset = load_dataset_faiss('rest/ecommerce/dual-bert/rest.pt')
+    searcher = Searcher('ecommerce', vector=True, dimension=768)
+    searcher.build(dataset)
+    utterances = ['今天打算去香山转一圈', '我最喜欢的手机品牌就是华为了，支持国货']
+    vectors = 
+    rest, time_cost = searcher.search(vectors)
     print(rest)
     print(f'[!] time cost: {time_cost}')

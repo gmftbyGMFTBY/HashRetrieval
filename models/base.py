@@ -12,7 +12,10 @@ class RetrievalBaseAgent:
     
     def load_model(self, path):
         state_dict = torch.load(path)
-        self.model.module.load_state_dict(new_state_dict)
+        try:
+            self.model.module.load_state_dict(state_dict)
+        except:
+            self.model.load_state_dict(state_dict)
         print(f'[!] load model from {path}')
 
     def train_model(self, train_iter, mode='train'):

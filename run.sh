@@ -52,14 +52,22 @@ elif [ $mode = 'test' ]; then
         --mode test \
         --batch_size $batch_size \
         --max_len 256 \
-        --seed 30 \
+        --seed 50 \
         --multi_gpu $cuda
 elif [ $mode = 'inference' ]; then
     # inference and generate the real-vector for the utterances (faiss uses it)
-    python evalp.py \
+    gpu_ids=(${cuda//,/ })
+    CUDA_VISIBLE_DEVICES=$cuda python -m torch.distributed.launch --nproc_per_node=${#gpu_ids[@]} --master_addr 127.0.0.1 --master_port 29400 main.py \
+        --mode inference \
         --dataset $dataset \
-        --model $model
+        --model $model \
+        --multi_gpu $cuda \
+        --max_len 256 \
+        --seed 50 \
+        --batch_size 32
+    # reconstruct the results
+    python -m utils.reconstruct.py --model $model --dataset $dataset --num_nodes $gpu_ids
 else
-    echo "[!] mode needs to be train/test/eval, but got $mode"
+    echo "[!] mode needs to be init/backup/train/test/inference, but got $mode"
 fi
 
