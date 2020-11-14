@@ -75,10 +75,7 @@ def bert_embd_read(paths):
                 line = line.strip().split('\t')
                 label, us = int(line[0]), line[1:]
                 if label == 1:
-                    us = [''.join(i.split()) for i in us]
-                else:
-                    us = [''.join(us[-1].split())]
-                utterances |= set(us)
+                    utterances |= set([''.join(us[-1].split())])
         return utterances
     dataset = set()
     for path in paths:

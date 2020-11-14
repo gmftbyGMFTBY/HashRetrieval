@@ -10,10 +10,7 @@ def load_dataset_es(train_path, test_path):
             csfv = tqdm(list(csvf))
             for line in csfv:
                 if line[0] == '1':
-                    us = [''.join(i.split()) for i in line[1:]]
-                else:
-                    us = [''.join(line[-1].split())]
-                utterances |= set(us)
+                    utterances |= set([''.join(line[-1].split())])
         return utterances
     dataset = set()
     dataset |= _load(train_path)

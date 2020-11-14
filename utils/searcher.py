@@ -10,13 +10,14 @@ def parser_args():
     parser.add_argument('--mode', default='es', type=str, help='es or faiss')
     parser.add_argument('--model', default='dual-bert', type=str, help='dual-bert or hash-bert')
     parser.add_argument('--dim', default=768, type=int)
+    parser.add_argument('--gpu', default=-1, type=int)
     return parser.parse_args()
 
 class Searcher:
 
     '''Real-vector (FAISS) or Term-Frequency Searcher (Elasticsearch)'''
 
-    def __init__(self, dataset, vector=False, binary=False, dimension=768, build=False):
+    def __init__(self, dataset, vector=False, binary=False, dimension=768, build=False, gpu=False):
         self.dataset, self.dimension, self.mode, self.binary = dataset, dimension, vector, binary
         if vector:
             # faiss
@@ -97,7 +98,7 @@ class Searcher:
         if self.binary:
             faiss.write_index_binary(self.searcher, path1)
         else:
-            faiss.write_index(self.searcher, path2)
+            faiss.write_index(self.searcher, path1)
         # save the text
         with open(path2, 'wb') as f:
             pickle.dump(self.corpus, f)
@@ -113,16 +114,16 @@ class Searcher:
 
 if __name__ == "__main__":
     args = vars(parser_args())
-    dataset_name, mode, model, dim = args['dataset'], args['mode'], args['model'], args['dim']
+    dataset_name, mode, model, dim, gpu = args['dataset'], args['mode'], args['model'], args['dim'], args['gpu']
     if mode == 'es':
         dataset = load_dataset_es(f'data/{dataset_name}/train.txt', f'data/{dataset_name}/test.txt')
         searcher = Searcher(dataset_name, build=True)
         searcher.build(dataset)
-        print(f'[!] build elasticsearch index {dataset} over')
+        print(f'[!] build elasticsearch index {dataset_name} over')
     else:
         dataset = load_dataset_faiss(f'rest/{dataset_name}/{model}/rest.pt')
         binary = False if model == 'dual-bert' else True
-        searcher = Searcher(dataset_name, vector=True, binary=binary, dimension=dim)
+        searcher = Searcher(dataset_name, vector=True, binary=binary, dimension=dim, gpu=gpu)
         searcher.build(dataset)
         searcher.save(f'data/{dataset_name}/{model}.faiss_ckpt', f'data/{dataset_name}/{model}.corpus_ckpt')
         print(f'[!] build faiss index {dataset_name} over')

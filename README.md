@@ -37,21 +37,107 @@ dual-bert and hash-bert generate the vectors of the utterances in the corpus
 ./run.sh inference <dataset_name> dual-bert/hash-bert <gpu_ids>
 ```
 
+### 1.4 Obtain the index storage of the Elasticsearch
+
+```bash
+curl -X GET localhost:9200/_cat/indices?
+```
+
+### 1.5 Prepare the Pre-constructed Corpus (ES or FAISS)
+
+ES doesn't need the gpu_id (set as 0); FAISS need the gpu_ids (default set as 1,2,3,4)
+
+```bash
+./prepare_corpus.sh <dataset_name> <es/faiss> 1,2,3,4
+```
+
+### 1.6 Chat test
+
+```bash
+./chat.sh <dataset_name> <es/dense/hash> 1
+```
+
 ## 2. Experiment Results
 ### 2.1 Comparsion between Term-Frequency and Dense vector retrieval
-Compare the performance and the time cost (The pre-constructed corpus is the combination of the train and test dataset)
-* Elasticsearch v.s. Faiss-cpu (IndexFlatL2)
+Compare the performance and the time cost (The pre-constructed corpus is the combination of the train and test dataset).
 
-| Method | Top-20 | Top-100 | Time Cost (batch=32) |
-| :----: | :----: | :-----: | :------------------: |
-| Dense  | 0.18   | 0.345   |   1.0119s            |
-| BM25   | 0.022  | 0.04    |   0.1789s            |
+<center> <b> E-Commerce Dataset </b> </center>
+
+| Method | Top-20 | Time Cost (batch=32, Topk-20) | Top-100 | Time Cost (batch=32, Topk-100) | Storage (index) |
+| :----: | :----: | :---: | :-----: | :------------------: | :-----------: |
+| BM25   | 0.025  | 0.0895s | 0.055   |   0.1294s            | 8.8Mb |
+| Dense (cpu)  | 0.204  | 0.3893s | 0.413   |   0.4015s      | 802Mb |
+| Dense (gpu)  |  |    |            | |
+
+<center> <b> Douban Dataset </b> </center>
+
+| Method | Top-20 | Time Cost (batch=32, Topk-20) | Top-100 | Time Cost (batch=32, Topk-100) | Storage |
+| :----: | :----: | :-----: | :-----: | :------------------: | :----: |
+| BM25   | 0.063  | 0.4487s | 0.096 |    0.4997s           | 55.4Mb |
+| Dense (cpu)  | 0.054  | 1.6011s |  0.1049  |  1.6797s          | |
+| Dense (gpu)  |   | |    |            | | 
+
+<center> <b> LCCC Dataset </b> </center>
+
+| Method | Top-20 | Time Cost (batch=32, Topk-20) | Top-100 | Time Cost (batch=32, Topk-100) | Storage |
+| :----: | :----: | :-----: | :-----: | :------------------: | :----: |
+| BM25   |  | |  |              |  |
+| Dense (cpu)  |  | |   |           | |
+| Dense (gpu)  |   | |    |            | |
 
 ### 2.2 Comparsion between the Dense vector and Hash vector retrieval
 Compare the performance and the time cost
 
+<center> <b> E-Commerce Dataset </b> </center>
+
+| Method | Top-20 | Top-100 | Average Time Cost (batch=32) | Storage |
+| :----: | :----: | :-----: | :------------------: | :---: |
+| Dense (cpu)  | 0.18   | 0.345   |   1.0119s            | |
+| Dense (gpu)  |  |    |            | |
+| Hash (cpu)  |   |    |              | |
+| Hash (gpu)  |  |    |            | |
+
+<center> <b> Douban Dataset </b> </center>
+
+| Method | Top-20 | Top-100 | Average Time Cost (batch=32) | Storage |
+| :----: | :----: | :-----: | :------------------: | :---: |
+| Dense (cpu)  |    |    |               | |
+| Dense (gpu)  |  |    |            | |
+| Hash (cpu)  |   |    |              | |
+| Hash (gpu)  |  |    |            | |
+
 ### 2.3 Overall comparsion
-cross-bert post rank with different coarse retrieval strategies:
-* Term-Frequency
-* Dense vector
-* Hash vector
+cross-bert post rank with different coarse retrieval strategies. 
+Performance metric is not the Top-20/100, should be the human evaluation or the other automatic evaluation. Average Time cost is also needed.
+Datasets are: E-Commerce, Douban, LCCC.
+
+<center> <b> E-Commerce Dataset </b> </center>
+
+| Method | Top-20 | Top-100 | Average Time Cost (batch=32) | Storage |
+| :----: | :----: | :-----: | :------------------: | :----: |
+| BM25+cross-bert  |    |    |               | |
+| Dense(cpu)+cross-bert  |  |    |            | |
+| Dense(gpu)+cross-bert  |  |    |            | |
+| Hash(cpu)+cross-bert  |   |    |              | |
+| Hash(gpu)+cross-bert  |  |    |            | |
+
+<center> <b> Douban Dataset </b> </center>
+
+| Method | Top-20 | Top-100 | Average Time Cost (batch=32) | Storage |
+| :----: | :----: | :-----: | :------------------: | :---: |
+| BM25+cross-bert  |    |    |               | |
+| Dense(cpu)+cross-bert  |  |    |            | |
+| Dense(gpu)+cross-bert  |  |    |            | |
+| Hash(cpu)+cross-bert  |   |    |              | |
+| Hash(gpu)+cross-bert  |  |    |            | |
+    
+    
+## 3. Configure of the server and environment
+
+* Hardware: 
+    * 48 Intel(R) Xeon(R) CPU E5-2650 v4 @ 2.20GHz
+    * GPU GeForce GTX 1080 Ti
+* System: Ubuntu 18.04
+* faiss-cpu 1.5.3
+* faiss-gpu xxx
+* Elasticsearch 7.6.1 & Lucene 8.4.0 & elasticsearch-py 7.6.0

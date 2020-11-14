@@ -12,6 +12,7 @@ def parser_args():
     parser.add_argument('--max_len', type=int, default=300)
     parser.add_argument('--topk', type=int, default=20)
     parser.add_argument('--test_mode', type=str, default='coarse')
+    parser.add_argument('--gpu', type=int, default=-1)
     return parser.parse_args()
 
 class HashVectorCoarseRetrieval:
@@ -22,7 +23,7 @@ class DenseVectorCoarseRetrieval:
     
     '''dual-bert or hash-bert'''
     
-    def __init__(self, dataset, path1, path2, topk=20, max_len=256):
+    def __init__(self, dataset, path1, path2, topk=20, max_len=256, gpu=-1):
         self.vocab = BertTokenizer.from_pretrained('bert-base-chinese')
         self.model = BERTBiEncoder()
         self._load(f'ckpt/{args["dataset"]}/dual-bert/best.pt')
@@ -30,7 +31,7 @@ class DenseVectorCoarseRetrieval:
             self.model.cuda()
         self.topk, self.max_len, self.pad = topk, max_len, self.vocab.pad_token_id
         
-        self.searcher = Searcher(dataset, vector=True, binary=False, dimension=768)
+        self.searcher = Searcher(dataset, vector=True, binary=False, dimension=768, gpu=gpu)
         self.searcher.load(path1, path2)
         
     def _load(self, path):
@@ -103,7 +104,7 @@ class Agent:
     '''chatbot agent:
     1. coarse: es/dense/hash'''
     
-    def __init__(self, dataset, coarse='es', topk=20):
+    def __init__(self, dataset, coarse='es', topk=200, gpu=-1):
         self.topk, self.coarse = topk, coarse
         if coarse == 'es':
             self.searcher = ESCoarseRetrieval(dataset, topk=topk)
@@ -113,6 +114,7 @@ class Agent:
                 f'data/{dataset}/dual-bert.faiss_ckpt',
                 f'data/{dataset}/dual-bert.corpus_ckpt',
                 topk=topk,
+                gpu=gpu,
             )
         elif coarse == 'hash':
             self.searcher = HashVectorCoarseRetrieval(
@@ -157,7 +159,7 @@ if __name__ == "__main__":
         torch.cuda.manual_seed_all(args['seed'])
     
     test_iter = load_utterance_text_dataset(args)
-    agent = Agent(args['dataset'], coarse=args['coarse'], topk=args['topk'])
+    agent = Agent(args['dataset'], coarse=args['coarse'], topk=args['topk'], gpu=args['gpu'])
     if args['test_mode'] == 'coarse':
         agent.test_coarse(test_iter)
     elif args['test_mode'] == 'overall':
