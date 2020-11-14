@@ -9,7 +9,7 @@ model=$3
 cuda=$4
 
 if [ $mode = 'init' ]; then
-    models=(dual-bert cross-bert)
+    models=(dual-bert cross-bert hash-bert)
     datasets=(ecommerce douban LCCC)
     mkdir bak ckpt rest
     for m in ${models[@]}

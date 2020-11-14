@@ -16,4 +16,4 @@ CUDA_VISIBLE_DEVICES=$cuda python agent.py \
     --max_len 256 \
     --topk 20 \
     --test_mode coarse \
-    --gpu -1
+    --gpu $cuda

@@ -17,12 +17,20 @@ class Searcher:
 
     '''Real-vector (FAISS) or Term-Frequency Searcher (Elasticsearch)'''
 
-    def __init__(self, dataset, vector=False, binary=False, dimension=768, build=False, gpu=False):
+    def __init__(self, dataset, vector=False, binary=False, dimension=768, build=False, gpu=-1):
         self.dataset, self.dimension, self.mode, self.binary = dataset, dimension, vector, binary
         if vector:
             # faiss
             func = faiss.IndexBinaryFlat if binary else faiss.IndexFlatL2
             self.searcher = func(dimension)
+            if gpu >= 0:
+                # GpuIndexBinaryFlat: https://github.com/facebookresearch/faiss/blob/master/faiss/gpu/test/test_gpu_index.py#L176
+                res = faiss.StandardGpuResources()  # use a single GPU
+                if binary:
+                    self.searcher = faiss.GpuIndexBinaryFlat(res, dimension)
+                else:
+                    self.searcher = faiss.GpuIndexFlatL2(res, dimension)
+                print(f'[!] gpu(cuda:{gpu}) is used for faiss to speed up')
             self.corpus = []
         else:
             # elasticsearch

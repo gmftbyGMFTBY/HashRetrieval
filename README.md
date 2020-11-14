@@ -59,25 +59,25 @@ ES doesn't need the gpu_id (set as 0); FAISS need the gpu_ids (default set as 1,
 
 ## 2. Experiment Results
 ### 2.1 Comparsion between Term-Frequency and Dense vector retrieval
-Compare the performance and the time cost (The pre-constructed corpus is the combination of the train and test dataset).
+Compare the performance, the ratio of the unconditional responses, the storage, and the time cost (The pre-constructed corpus is the combination of the train and test dataset).
 
-<center> <b> E-Commerce Dataset </b> </center>
+<center> <b> E-Commerce Dataset 109105 utterances (xx.xx%) </b> </center>
 
 | Method | Top-20 | Time Cost (batch=32, Topk-20) | Top-100 | Time Cost (batch=32, Topk-100) | Storage (index) |
-| :----: | :----: | :---: | :-----: | :------------------: | :-----------: |
-| BM25   | 0.025  | 0.0895s | 0.055   |   0.1294s            | 8.8Mb |
-| Dense (cpu)  | 0.204  | 0.3893s | 0.413   |   0.4015s      | 802Mb |
-| Dense (gpu)  |  |    |            | |
+| :----------: | :----: | :-----: | :-----: | :-----: | :---: |
+| BM25         | 0.025  | 0.0895s | 0.055   | 0.1294s | 8.8Mb |
+| Dense (cpu)  | 0.204  | 0.3893s | 0.413   | 0.4015s | 802Mb |
+| Dense (gpu)  | 0.204  | 0.0406s | 0.413   | 0.0398s | 802Mb |
 
-<center> <b> Douban Dataset </b> </center>
+<center> <b> Douban Dataset 442280 utterances (xx.xx%) </b> </center>
 
 | Method | Top-20 | Time Cost (batch=32, Topk-20) | Top-100 | Time Cost (batch=32, Topk-100) | Storage |
-| :----: | :----: | :-----: | :-----: | :------------------: | :----: |
-| BM25   | 0.063  | 0.4487s | 0.096 |    0.4997s           | 55.4Mb |
-| Dense (cpu)  | 0.054  | 1.6011s |  0.1049  |  1.6797s          | |
-| Dense (gpu)  |   | |    |            | | 
+| :----------: | :----: | :-----: | :------: | :--------: | :----: |
+| BM25         | 0.063  | 0.4487s |  0.096   |  0.4997s   | 55.4Mb |
+| Dense (cpu)  | 0.054  | 1.6011s |  0.1049  |  1.6797s   | 1.3Gb  |
+| Dense (gpu)  | 0.054  | 0.2s    |  0.1049  |  0.1771s   | 1.3Gb  | 
 
-<center> <b> LCCC Dataset </b> </center>
+<center> <b> LCCC Dataset (xx.xx%) </b> </center>
 
 | Method | Top-20 | Time Cost (batch=32, Topk-20) | Top-100 | Time Cost (batch=32, Topk-100) | Storage |
 | :----: | :----: | :-----: | :-----: | :------------------: | :----: |

@@ -357,6 +357,8 @@ def load_bert_irbi_dataset(args):
             data, shuffle=False, batch_size=args['batch_size'], collate_fn=data.collate,
         )
     args['total_steps'] = len(data) * args['epoch'] / args['batch_size']
+    if args['model'] == 'hash-bert':
+        args['pretrained_path'] = f'ckpt/{args["dataset"]}/dual-bert/best.pt'
     return iter_
 
 def load_bert_ir_dataset(args):
