@@ -20,7 +20,7 @@ Very Fast and Low-Memory Open-Domain Retrieval Dialog Systems by Using Semantic 
 
 ### 1.1 Train the dual-bert model
 
-dual-bert has two bert model, the batch size is 16
+dual-bert has two bert models, the batch size is 16
 
 ```bash
 # for example: ./run.sh train ecommerce dual-bert 0,1,2,3
@@ -74,23 +74,23 @@ ES doesn't need the gpu_id (set as 0); FAISS need the gpu_ids (default set as 1,
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
-| BM25         | 0.025  | 0.055   | 0.615        | 0.5122        | 8.8Mb   | 0.0895s/0.1294s    |
-| Dense (cpu)  | 0.204  | 0.413   | 0.9537       | 0.9203        | 802Mb   | 0.3893s/0.4015s    |
-| Dense (gpu)  | 0.204  | 0.413   | 0.9537       | 0.9203        | 802Mb   | 0.0406s/0.0398s    |
+| BM25         | 0.025  | 0.055   | 0.615        | 0.5122        | 8.8 Mb  | 0.0895s/0.1294s    |
+| Dense (cpu)  | 0.204  | 0.413   | 0.9537       | 0.9203        | 802 Mb  | 0.3893s/0.4015s    |
+| Dense (gpu)  | 0.204  | 0.413   | 0.9537       | 0.9203        | 802 Mb  | 0.0406s/0.0398s    |
 
 <center> <b> Douban Dataset 442280 utterances (xx.xx%); batch size is 32 </b> </center>
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
-| BM25         | 0.063  |  0.096  |              |               | 55.4Mb  | 0.4487s/0.4997s    |
-| Dense (cpu)  | 0.054  |  0.1049 |              |               | 1.3Gb   | 1.6011s/1.6797s    |
-| Dense (gpu)  | 0.054  |  0.1049 |              |               | 1.3Gb   | 0.2s/0.1771s       |
+| BM25         | 0.063  |  0.096  | 0.6957       |               | 55.4 Mb | 0.4487s/0.4997s    |
+| Dense (cpu)  | 0.054  |  0.1049 | 0.9403       |               | 1.3 Gb  | 1.6011s/1.6797s    |
+| Dense (gpu)  | 0.054  |  0.1049 | 0.9403       |               | 1.3 Gb  | 0.2s/0.1771s       |
 
 <center> <b> LCCC Dataset 1650881 utterances (xx.xx%); batch size is 32 </b> </center>
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
-| BM25         | 0.0378 | 0.0695  |              |               | 115.9Mb | 0.1941s/0.2421s    |
+| BM25         | 0.0378 | 0.0695  |              |               | 115.9 Mb| 0.1941s/0.2421s    |
 | Dense (cpu)  | 0.0278 | 0.057   |              |               | 4.8 Gb  | 0.48s/0.4869s      |
 | Dense (gpu)  | 0.0278 | 0.057   |              |               | 4.8 Gb  | 0.4662s/0.4622s    |
 

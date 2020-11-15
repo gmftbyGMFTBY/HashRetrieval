@@ -1,8 +1,9 @@
-import torch, os, ipdb
+import torch, os, ipdb, logging
 from torch.utils.data import Dataset, DataLoader
 from transformers import BertTokenizer
 from tqdm import tqdm
 from torch.nn.utils.rnn import pad_sequence
+logging.getLogger("transformers.tokenization_utils").setLevel(logging.ERROR)
 
 # ========== File loader ========== #
 def dual_bert_read_train(path):
