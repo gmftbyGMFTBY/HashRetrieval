@@ -10,7 +10,7 @@ cuda=$4
 
 if [ $mode = 'init' ]; then
     models=(dual-bert cross-bert hash-bert)
-    datasets=(ecommerce douban LCCC)
+    datasets=(ecommerce douban lccc)
     mkdir bak ckpt rest
     for m in ${models[@]}
     do
@@ -34,7 +34,7 @@ elif [ $mode = 'train' ]; then
         --dataset $dataset \
         --model $model \
         --mode train \
-        --batch_size 16 \
+        --batch_size 32 \
         --epoch 5 \
         --seed 50 \
         --max_len 256 \

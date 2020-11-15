@@ -1,4 +1,4 @@
-import time, json, ipdb, faiss, argparse, pickle
+import time, json, ipdb, faiss, argparse, joblib
 from tqdm import tqdm
 import numpy as np
 from elasticsearch import Elasticsearch, helpers
@@ -31,12 +31,17 @@ class Searcher:
                 else:
                     self.searcher = faiss.GpuIndexFlatL2(res, dimension)
                 print(f'[!] gpu(cuda:{gpu}) is used for faiss to speed up')
+            else:
+                print(f'[!] cpu is used for faiss')
             self.corpus = []
         else:
             # elasticsearch
             self.searcher = Elasticsearch()
             if build:
-                self.searcher.indices.delete(index=dataset)
+                try:
+                    self.searcher.indices.delete(index=dataset)
+                except:
+                    print(f'[!] index {dataset} is empty, donot delete')
                 mapping = {
                     'properties': {
                         'utterance': {
@@ -109,7 +114,7 @@ class Searcher:
             faiss.write_index(self.searcher, path1)
         # save the text
         with open(path2, 'wb') as f:
-            pickle.dump(self.corpus, f)
+            joblib.dump(self.corpus, f)
 
     def load(self, path1, path2):
         '''only faiss need this procedure'''
@@ -118,7 +123,7 @@ class Searcher:
         else:
             self.searcher = faiss.read_index(path1)
         with open(path2, 'rb') as f:
-            self.corpus = pickle.load(f)
+            self.corpus = joblib.load(f)
 
 if __name__ == "__main__":
     args = vars(parser_args())

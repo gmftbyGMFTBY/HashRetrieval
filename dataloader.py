@@ -6,7 +6,7 @@ from torch.nn.utils.rnn import pad_sequence
 
 # ========== File loader ========== #
 def dual_bert_read_train(path):
-    '''for douban300w; e-commerce dataset'''
+    '''for douban300w; e-commerce; lccc dataset'''
     with open(path) as f:
         dataset = []
         for line in f.readlines():

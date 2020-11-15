@@ -5,3 +5,4 @@ from apex import amp
 from apex.parallel import DistributedDataParallel as DDP
 from apex.parallel import convert_syncbn_model
 import torch
+from itertools import chain

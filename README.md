@@ -9,7 +9,7 @@ Very Fast and Low-Memory Open-Domain Retrieval Dialog Systems by Using Semantic 
 * 回复：我喜欢看恐怖电影
 * 潜在候选回复：你为什么喜欢看这种猎奇类型呢
 
-目前，real-vector检索已被证明可以提升QA系统的效果，但是real-vector是否可以有效的提升开放域对话系统仍然是一个待研究的问题。其次，目前的real-vector检索面临的主要问题就是存储空间大和查询速度相对慢的问题。我们也要提出一个基于Hash的vector语义检索模型，期望可以在不损失大量的效果的前提下，可以获得极快的查询速度和极低的存储大小，以促进检索式对话系统的实际应用和部署，比如移动设备上等。
+目前，real-vector检索已被证明可以提升QA系统的效果，但是real-vector是否可以有效的提升开放域对话系统仍然是一个待研究的问题。其次，目前的real-vector检索面临的主要问题就是存储空间大和查询速度相对慢的问题。我们也要提出一个基于Hash的vector语义检索模型，期望可以在不损失大量的效果的前提下，可以获得极快的查询速度和极低的存储大小，以促进检索式对话系统的实际应用和部署，比如移动设备上等（大量的内积运算消耗太多的能量和电力，使用哈希的方法可以极大的降低运算功率）。
 
 ## 1. How to Use
 ### 1.1 Train the dual-bert model
@@ -54,36 +54,41 @@ ES doesn't need the gpu_id (set as 0); FAISS need the gpu_ids (default set as 1,
 ### 1.6 Chat test
 
 ```bash
-./chat.sh <dataset_name> <es/dense/hash> 1
+# set faiss_cuda as -1 to use cpu, set faiss_cuda i>=0 to use gpu(cuda:i)
+./chat.sh <dataset_name> <es/dense/hash> <top-k> <cuda> <faiss_cuda>
 ```
 
 ## 2. Experiment Results
 ### 2.1 Comparsion between Term-Frequency and Dense vector retrieval
-Compare the performance, the ratio of the unconditional responses, the storage, and the time cost (The pre-constructed corpus is the combination of the train and test dataset).
+1. Compare the performance, the ratio of the unconditional responses, the storage, and the time cost (The pre-constructed corpus is the combination of the train and test dataset).
+2. 在这里还需要分析倒排索引查询时间复杂度和内积矩阵运算的时间复杂度作为辅助说明。
+3. Average Coherence scores are calculated by the cross-bert model.
 
-<center> <b> E-Commerce Dataset 109105 utterances (xx.xx%) </b> </center>
+<center> <b> E-Commerce Dataset 109105 utterances (xx.xx%); batch size is 32 </b> </center>
 
-| Method | Top-20 | Time Cost (batch=32, Topk-20) | Top-100 | Time Cost (batch=32, Topk-100) | Storage (index) |
-| :----------: | :----: | :-----: | :-----: | :-----: | :---: |
-| BM25         | 0.025  | 0.0895s | 0.055   | 0.1294s | 8.8Mb |
-| Dense (cpu)  | 0.204  | 0.3893s | 0.413   | 0.4015s | 802Mb |
-| Dense (gpu)  | 0.204  | 0.0406s | 0.413   | 0.0398s | 802Mb |
+| Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
+| :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
+| BM25         | 0.025  | 0.055   | 0.615        | 0.5122        | 8.8Mb   | 0.0895s/0.1294s    |
+| Dense (cpu)  | 0.204  | 0.413   | 0.9537       | 0.9203        | 802Mb   | 0.3893s/0.4015s    |
+| Dense (gpu)  | 0.204  | 0.413   | 0.9537       | 0.9203        | 802Mb   | 0.0406s/0.0398s    |
 
-<center> <b> Douban Dataset 442280 utterances (xx.xx%) </b> </center>
+<center> <b> Douban Dataset 442280 utterances (xx.xx%); batch size is 32 </b> </center>
 
-| Method | Top-20 | Time Cost (batch=32, Topk-20) | Top-100 | Time Cost (batch=32, Topk-100) | Storage |
-| :----------: | :----: | :-----: | :------: | :--------: | :----: |
-| BM25         | 0.063  | 0.4487s |  0.096   |  0.4997s   | 55.4Mb |
-| Dense (cpu)  | 0.054  | 1.6011s |  0.1049  |  1.6797s   | 1.3Gb  |
-| Dense (gpu)  | 0.054  | 0.2s    |  0.1049  |  0.1771s   | 1.3Gb  | 
+| Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
+| :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
+| BM25         | 0.063  |  0.096  |              |               | 55.4Mb  | 0.4487s/0.4997s    |
+| Dense (cpu)  | 0.054  |  0.1049 |              |               | 1.3Gb   | 1.6011s/1.6797s    |
+| Dense (gpu)  | 0.054  |  0.1049 |              |               | 1.3Gb   | 0.2s/0.1771s       |
 
-<center> <b> LCCC Dataset (xx.xx%) </b> </center>
+<center> <b> LCCC Dataset 1650881 utterances (xx.xx%); batch size is 32 </b> </center>
 
-| Method | Top-20 | Time Cost (batch=32, Topk-20) | Top-100 | Time Cost (batch=32, Topk-100) | Storage |
-| :----: | :----: | :-----: | :-----: | :------------------: | :----: |
-| BM25   |  | |  |              |  |
-| Dense (cpu)  |  | |   |           | |
-| Dense (gpu)  |   | |    |            | |
+| Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
+| :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
+| BM25         | 0.0378 | 0.0695  |              |               | 115.9Mb | 0.1941s/0.2421s    |
+| Dense (cpu)  | 0.0278 | 0.057   |              |               | 4.8 Gb  | 0.48s/0.4869s      |
+| Dense (gpu)  | 0.0278 | 0.057   |              |               | 4.8 Gb  | 0.4662s/0.4622s    |
+
+**Conclusion:**
 
 ### 2.2 Comparsion between the Dense vector and Hash vector retrieval
 Compare the performance and the time cost
@@ -138,6 +143,5 @@ Datasets are: E-Commerce, Douban, LCCC.
     * 48 Intel(R) Xeon(R) CPU E5-2650 v4 @ 2.20GHz
     * GPU GeForce GTX 1080 Ti
 * System: Ubuntu 18.04
-* faiss-cpu 1.5.3
-* faiss-gpu xxx
+* faiss-gpu 1.6.3
 * Elasticsearch 7.6.1 & Lucene 8.4.0 & elasticsearch-py 7.6.0

@@ -16,6 +16,17 @@ class BERTRetrieval(nn.Module):
         logits = output[0]    # [batch, 2]
         return logits
     
+    @torch.no_grad()
+    def rank(self, ids, tids, mask):
+        self.model.eval()
+        scores = self.model(
+            input_ids=ids, 
+            token_type_ids=tids, 
+            attention_mask=mask
+        )[0]    # [B, 2]
+        scores = F.softmax(scores, dim=-1)
+        return scores
+    
 class BERTRetrievalAgent(RetrievalBaseAgent):
 
     def __init__(self, multi_gpu, total_step, run_mode='train', local_rank=0):
@@ -136,3 +147,4 @@ class BERTRetrievalAgent(RetrievalBaseAgent):
                 counter += 1
         r1, r2, r5, r10, mrr = round(r1/counter, 4), round(r2/counter, 4), round(r5/counter, 4), round(r10/counter, 4), round(np.mean(mrr), 4)
         print(f'r1@10: {r1}; r2@10: {r2}; r5@10: {r5}; r10@10: {r10}; mrr: {mrr}')
+        

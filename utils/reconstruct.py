@@ -1,4 +1,4 @@
-import torch, sys, argparse, ipdb
+import torch, sys, argparse, ipdb, joblib
 import numpy as np
 from tqdm import tqdm
 
@@ -24,5 +24,7 @@ if __name__ == "__main__":
     assert len(dataset_matrix) == len(dataset_text)
     print(f'[!] collect {len(dataset_text)} samples')
     
-    torch.save((dataset_matrix, dataset_text), f'rest/{args["dataset"]}/{args["model"]}/rest.pt')
+    with open(f'rest/{args["dataset"]}/{args["model"]}/rest.pt', 'wb') as f:
+        joblib.dump((dataset_matrix, dataset_text), f)
+    # torch.save((dataset_matrix, dataset_text), f'rest/{args["dataset"]}/{args["model"]}/rest.pt')
     print(f'[!] reconstruct and save the overall embedding into rest/{args["dataset"]}/{args["model"]}/rest.pt')
