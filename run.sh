@@ -11,7 +11,7 @@ cuda=$4
 if [ $mode = 'init' ]; then
     models=(dual-bert cross-bert hash-bert)
     datasets=(ecommerce douban lccc)
-    mkdir bak ckpt rest
+    mkdir bak ckpt rest generated
     for m in ${models[@]}
     do
         for d in ${datasets[@]}
@@ -20,6 +20,12 @@ if [ $mode = 'init' ]; then
             mkdir -p rest/$d/$m
             mkdir -p bak/$d/$m
         done
+    done
+    for d in ${datasets[@]}
+    do
+        mkdir -p generated/$d/es 
+        mkdir -p generated/$d/dense
+        mkdir -p generated/$d/hash
     done
 elif [ $mode = 'backup' ]; then
     cp ckpt/$dataset/$model/* bak/$dataset/$model/

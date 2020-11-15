@@ -167,10 +167,11 @@ class Agent:
         self.ranker = Ranker(max_len=max_len)
     
     @torch.no_grad()
-    def test_coarse(self, test_iter):
+    def test_coarse(self, test_iter, path):
         '''obtain the top-20/top-100 performance:
         Top-20 & Top-100 retrieval accuracy on test sets, measured as the percentage of top 20/100 retrieved utterances that contain the ground-truth.'''
         correct, time_cost, counter, avg_coherence = 0, [], 0, []
+        generated_responses = []
         for ctxs, reses in tqdm(test_iter):
             # stage 1: coarse retrieval
             rest, t = self.searcher.search(ctxs)    # [Queries, Topk]; time cost
@@ -180,15 +181,17 @@ class Agent:
                     correct += 1
                 counter += 1
             # stage 2: post rank
-            for c, r in zip(ctxs, rest):
+            for c, r_, r in zip(ctxs, reses, rest):
                 scores = self.ranker.rank([c] * self.topk, r)
                 avg_coherence.append(scores.mean().item())
-            
+                order = torch.argsort(scores, descending=True)
+                best = r[order[0]]
+                generated_responses.append((c, r_, best))
+        with open(path, 'w') as f:
+            for c, r, g in generated_responses:
+                f.write(f'[CTX]: {c}\n[REF]: {r}\n[GEN]: {g}\n\n')
+        print(f'[!] write the generated samples into {path}')
         print(f'[!] MODE: {self.coarse}; Top-{self.topk} Accuracy: {round(correct/counter, 4)}; Top-{self.topk} Avg Coherence: {round(np.mean(avg_coherence), 4)}; average time cost: {round(np.mean(time_cost), 4)}s')
-    
-    @torch.no_grad()
-    def talk(self, msgs):
-        pass
     
 if __name__ == "__main__":
     args = vars(parser_args())
@@ -201,7 +204,7 @@ if __name__ == "__main__":
     test_iter = load_utterance_text_dataset(args)
     agent = Agent(args['dataset'], coarse=args['coarse'], topk=args['topk'], gpu=args['gpu'], max_len=args['max_len'])
     if args['test_mode'] == 'coarse':
-        agent.test_coarse(test_iter)
+        agent.test_coarse(test_iter, f'generated/{args["dataset"]}/{args["coarse"]}/rest.txt')
     elif args['test_mode'] == 'overall':
         pass
     else:

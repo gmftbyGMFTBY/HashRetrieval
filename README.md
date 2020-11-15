@@ -12,6 +12,12 @@ Very Fast and Low-Memory Open-Domain Retrieval Dialog Systems by Using Semantic 
 目前，real-vector检索已被证明可以提升QA系统的效果，但是real-vector是否可以有效的提升开放域对话系统仍然是一个待研究的问题。其次，目前的real-vector检索面临的主要问题就是存储空间大和查询速度相对慢的问题。我们也要提出一个基于Hash的vector语义检索模型，期望可以在不损失大量的效果的前提下，可以获得极快的查询速度和极低的存储大小，以促进检索式对话系统的实际应用和部署，比如移动设备上等（大量的内积运算消耗太多的能量和电力，使用哈希的方法可以极大的降低运算功率）。
 
 ## 1. How to Use
+### 1.0 Init this repo
+
+```bash
+./run.sh init
+```
+
 ### 1.1 Train the dual-bert model
 
 dual-bert has two bert model, the batch size is 16
