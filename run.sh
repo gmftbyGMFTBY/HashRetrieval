@@ -34,13 +34,19 @@ elif [ $mode = 'train' ]; then
     rm ckpt/$dataset/$model/*
     rm rest/$dataset/$model/events*    # clear the tensorboard cache
     
-    # batch for cross-bert is 32, for dual-bert is 16
+    # batch for cross-bert is 32, for dual-bert and hash-bert is 16
+    if [ $model = 'cross-bert' ]; then
+        batch_size=32
+    else
+        batch_size=16
+    fi
+    
     gpu_ids=(${cuda//,/ })
-    CUDA_VISIBLE_DEVICES=$cuda python -m torch.distributed.launch --nproc_per_node=${#gpu_ids[@]} --master_addr 127.0.0.1 --master_port 29400 main.py \
+    CUDA_VISIBLE_DEVICES=$cuda python -m torch.distributed.launch --nproc_per_node=${#gpu_ids[@]} --master_addr 127.0.0.1 --master_port 29401 main.py \
         --dataset $dataset \
         --model $model \
         --mode train \
-        --batch_size 32 \
+        --batch_size $batch_size \
         --epoch 5 \
         --seed 50 \
         --max_len 256 \
@@ -64,7 +70,7 @@ elif [ $mode = 'test' ]; then
 elif [ $mode = 'inference' ]; then
     # inference and generate the real-vector for the utterances (faiss uses it)
     gpu_ids=(${cuda//,/ })
-    CUDA_VISIBLE_DEVICES=$cuda python -m torch.distributed.launch --nproc_per_node=${#gpu_ids[@]} --master_addr 127.0.0.1 --master_port 29400 main.py \
+    CUDA_VISIBLE_DEVICES=$cuda python -m torch.distributed.launch --nproc_per_node=${#gpu_ids[@]} --master_addr 127.0.0.1 --master_port 29401 main.py \
         --mode inference \
         --dataset $dataset \
         --model $model \

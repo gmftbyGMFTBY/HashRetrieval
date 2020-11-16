@@ -76,7 +76,7 @@ class BERTRetrievalAgent(RetrievalBaseAgent):
         else:
             # faster
             self.model, self.optimizer = amp.initialize(
-                self.model, 
+                self.model,
                 self.optimizer,
                 opt_level=self.args['amp_level'],
             )
@@ -101,7 +101,6 @@ class BERTRetrievalAgent(RetrievalBaseAgent):
                 scaled_loss.backward()
             clip_grad_norm_(amp.master_params(self.optimizer), self.args['grad_clip'])
             self.optimizer.step()
-            self.scheduler.step()
 
             total_loss += loss.item()
             batch_num += 1

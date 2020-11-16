@@ -18,13 +18,13 @@ Very Fast and Low-Memory Open-Domain Retrieval Dialog Systems by Using Semantic 
 ./run.sh init
 ```
 
-### 1.1 Train the dual-bert model
+### 1.1 Train the dual-bert or hash-bert model
 
-dual-bert has two bert models, the batch size is 16
+dual-bert or hash-bert has two bert models, the batch size is 16
 
 ```bash
 # for example: ./run.sh train ecommerce dual-bert 0,1,2,3
-./run.sh train <dataset_name> dual-bert <gpu_ids>
+./run.sh train <dataset_name> <dual-bert/hash-bert> <gpu_ids>
 ```
 
 ### 1.2 Train the cross-bert model
@@ -35,21 +35,13 @@ cross-bert has one bert mode, the batch size is 32
 ./run.sh train <dataset_name> cross-bert <gpu_ids>
 ```
 
-### 1.3 Generate the vector for the corpus
-
-dual-bert and hash-bert generate the vectors of the utterances in the corpus
-
-```bash
-./run.sh inference <dataset_name> dual-bert/hash-bert <gpu_ids>
-```
-
-### 1.4 Obtain the index storage of the Elasticsearch
+### 1.3 Obtain the index storage of the Elasticsearch
 
 ```bash
 curl -X GET localhost:9200/_cat/indices?
 ```
 
-### 1.5 Prepare the Pre-constructed Corpus (ES or FAISS)
+### 1.4 Prepare the Pre-constructed Corpus (ES or FAISS)
 
 ES doesn't need the gpu_id (set as 0); FAISS need the gpu_ids (default set as 1,2,3,4)
 
@@ -57,7 +49,7 @@ ES doesn't need the gpu_id (set as 0); FAISS need the gpu_ids (default set as 1,
 ./prepare_corpus.sh <dataset_name> <es/faiss> 1,2,3,4
 ```
 
-### 1.6 Chat test
+### 1.5 Chat test
 
 ```bash
 # set faiss_cuda as -1 to use cpu, set faiss_cuda i>=0 to use gpu(cuda:i)
@@ -82,9 +74,9 @@ ES doesn't need the gpu_id (set as 0); FAISS need the gpu_ids (default set as 1,
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
-| BM25         | 0.063  |  0.096  | 0.6957       |               | 55.4 Mb | 0.4487s/0.4997s    |
-| Dense (cpu)  | 0.054  |  0.1049 | 0.9403       |               | 1.3 Gb  | 1.6011s/1.6797s    |
-| Dense (gpu)  | 0.054  |  0.1049 | 0.9403       |               | 1.3 Gb  | 0.2s/0.1771s       |
+| BM25         | 0.063  |  0.096  | 0.6957       | 0.6057        | 55.4 Mb | 0.4487s/0.4997s    |
+| Dense (cpu)  | 0.054  |  0.1049 | 0.9403       | 0.9067        | 1.3 Gb  | 1.6011s/1.6797s    |
+| Dense (gpu)  | 0.054  |  0.1049 | 0.9403       | 0.9067        | 1.3 Gb  | 0.2s/0.1771s       |
 
 <center> <b> LCCC Dataset 1650881 utterances (xx.xx%); batch size is 32 </b> </center>
 

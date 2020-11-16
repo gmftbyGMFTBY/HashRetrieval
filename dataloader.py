@@ -329,7 +329,7 @@ def load_dataset(args):
     if args['mode'] == 'inference':
         return load_bert_embd_dataset(args)
     else:
-        if args['model'] == 'dual-bert':
+        if args['model'] in ['dual-bert', 'hash-bert']:
             return load_bert_irbi_dataset(args)
         elif args['model'] == 'cross-bert':
             return load_bert_ir_dataset(args)
