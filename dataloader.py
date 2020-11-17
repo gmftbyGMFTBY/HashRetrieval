@@ -389,6 +389,8 @@ def load_bert_embd_dataset(args):
         collate_fn=data.collate, sampler=train_sampler,
     )
     args['total_steps'] = 0
+    if args['model'] == 'hash-bert':
+        args['pretrained_path'] = f'ckpt/{args["dataset"]}/dual-bert/best.pt'
     return iter_
 
 if __name__ == "__main__":

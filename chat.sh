@@ -10,6 +10,12 @@ topk=$3
 cuda=$4
 faiss_cuda=$5
 
+if [ $coarse_mode = 'dense' ]; then
+    dimension=768
+else
+    dimension=128
+fi
+
 CUDA_VISIBLE_DEVICES=$cuda python agent.py \
     --dataset $dataset \
     --coarse $coarse_mode \
@@ -18,4 +24,5 @@ CUDA_VISIBLE_DEVICES=$cuda python agent.py \
     --max_len 256 \
     --topk $topk \
     --test_mode coarse \
-    --gpu $faiss_cuda
+    --gpu $faiss_cuda \
+    --dimension $dimension

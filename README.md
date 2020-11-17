@@ -43,13 +43,17 @@ curl -X GET localhost:9200/_cat/indices?
 
 ### 1.4 Prepare the Pre-constructed Corpus (ES or FAISS)
 
-ES doesn't need the gpu_id (set as 0); FAISS need the gpu_ids (default set as 1,2,3,4)
+es doesn't need the gpu_id (set as 0); faiss needs the gpu_ids (default set as 1,2,3,4)
+
+_If you need to try default hash code size, replace the 128 in chat.sh into the dimension size that you want._
 
 ```bash
-./prepare_corpus.sh <dataset_name> <es/faiss> 1,2,3,4
+./prepare_corpus.sh <dataset_name> <es/faiss> <es/dual-bert/hash-bert> 1,2,3,4
 ```
 
 ### 1.5 Chat test
+
+_If you need to try default hash code size, replace the 128 in chat.sh into the dimension size that you want._
 
 ```bash
 # set faiss_cuda as -1 to use cpu, set faiss_cuda i>=0 to use gpu(cuda:i)

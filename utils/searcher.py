@@ -58,7 +58,10 @@ class Searcher:
         '''dataset is a list of tuple (vector, utterance)'''
         matrix = np.array([i[0] for i in dataset])    # [N, dimension]
         self.corpus = [i[1] for i in dataset]     # [N]
-        assert matrix.shape[1] == self.dimension
+        if self.binary:
+            assert matrix.shape[1] == self.dimension/8
+        else:
+            assert matrix.shape[1] == self.dimension
         self.searcher.add(matrix)
         return self.searcher.ntotal
 

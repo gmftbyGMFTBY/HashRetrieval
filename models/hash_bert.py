@@ -15,9 +15,23 @@ class DualBert(nn.Module):
        
     @torch.no_grad()
     def forward(self, cid, rid, cid_mask, rid_mask):
+        self.ctx_encoder.eval()
+        self.can_encoder.eval()
         cid_rep = self.ctx_encoder(cid, cid_mask)
         rid_rep = self.can_encoder(rid, rid_mask)
         return cid_rep, rid_rep
+    
+    @torch.no_grad()
+    def get_q(self, ids, mask):
+        self.ctx_encoder.eval()
+        cid_rep = self.ctx_encoder(ids, mask)
+        return cid_rep
+    
+    @torch.no_grad()
+    def get_r(self, ids, mask):
+        self.can_encoder.eval()
+        rid_rep = self.can_encoder(ids, mask)
+        return rid_rep
 
 class HashBERTBiEncoderModel(nn.Module):
     
@@ -55,16 +69,30 @@ class HashBERTBiEncoderModel(nn.Module):
         
     @torch.no_grad()
     def inference(self, rid_rep):
+        self.can_hash_encoder.eval()
         hash_code = torch.sign(self.can_hash_encoder(rid_rep))
+        hash_code = torch.where(
+            hash_code == -1, 
+            torch.zeros_like(hash_code), 
+            hash_code,
+        )
         return hash_code
     
     @torch.no_grad()
     def get_q(self, cid_rep):
+        self.ctx_hash_encoder.eval()
         hash_code = torch.sign(self.ctx_hash_encoder(cid_rep))
+        hash_code = torch.where(
+            hash_code == -1, 
+            torch.zeros_like(hash_code), 
+            hash_code,
+        )
         return hash_code
     
     @torch.no_grad()
     def predict(self, cid, rid, rid_mask):
+        self.ctx_hash_encoder.eval()
+        self.can_hash_encoder.eval()
         batch_size = rid.shape[0]
         cid_rep, rid_rep = self._encode(cid.unsqueeze(0), rid, None, rid_mask)
         cid_rep = cid.squeeze(0)
@@ -102,7 +130,12 @@ class HashBERTBiEncoderModel(nn.Module):
         acc_num = (hamming_distance.min(dim=-1)[1] == torch.LongTensor(torch.arange(batch_size)).cuda()).sum().item()
         acc = acc_num / batch_size
         
-        return acc, hash_loss, preserved_loss, quantization_loss
+        # ===== calculate reference acc ===== #
+        dot_product = torch.matmul(cid_rep, rid_rep.t())  # [B, B]
+        ref_acc_num = (F.softmax(dot_product, dim=-1).max(dim=-1)[1] == torch.LongTensor(torch.arange(batch_size)).cuda()).sum().item()
+        ref_acc = ref_acc_num / batch_size
+        
+        return acc, ref_acc, hash_loss, preserved_loss, quantization_loss
 
 class HashModelAgent(RetrievalBaseAgent):
     
@@ -128,7 +161,7 @@ class HashModelAgent(RetrievalBaseAgent):
         }
         
         self.model = HashBERTBiEncoderModel(
-            self.args['hidden_size'], 
+            self.args['hidden_size'],
             self.args['hash_code_size'],
             dropout=self.args['dropout'],
         )
@@ -174,6 +207,16 @@ class HashModelAgent(RetrievalBaseAgent):
             )
         pprint.pprint(self.args)
         
+    def load_model(self, path):
+        # load the bert encoder
+        self.load_encoder(self.args['path'])
+        state_dict = torch.load(path)
+        try:
+            self.model.module.load_state_dict(state_dict)
+        except:
+            self.model.load_state_dict(state_dict)
+        print(f'[!] load model from {path}')
+        
     def load_encoder(self, path):
         state_dict = torch.load(path)
         self.bert_encoder.load_state_dict(state_dict)
@@ -181,13 +224,13 @@ class HashModelAgent(RetrievalBaseAgent):
         
     def train_model(self, train_iter, mode='train', recoder=None, idx_=0):
         self.model.train()
-        total_acc, total_loss, total_h_loss, total_p_loss, total_q_loss, batch_num = 0, 0, 0, 0, 0, 0
+        total_acc, total_ref_acc, total_loss, total_h_loss, total_p_loss, total_q_loss, batch_num = 0, 0, 0, 0, 0, 0, 0
         pbar = tqdm(train_iter)
         for idx, batch in enumerate(pbar):
             self.optimizer.zero_grad()
             cid, rid, cid_mask, rid_mask = batch
             cid_rep, rid_rep = self.bert_encoder(cid, rid, cid_mask, rid_mask)
-            acc, hash_loss, preserved_loss, quantization_loss = self.model(
+            acc, ref_acc, hash_loss, preserved_loss, quantization_loss = self.model(
                 cid_rep, rid_rep,
             )
             quantization_loss = self.args['q_alpha'] * quantization_loss
@@ -198,6 +241,7 @@ class HashModelAgent(RetrievalBaseAgent):
 
             total_loss += loss.item()
             total_acc += acc
+            total_ref_acc += ref_acc
             total_p_loss += preserved_loss.item()
             total_q_loss += quantization_loss.item()
             total_h_loss += hash_loss.item()
@@ -213,14 +257,17 @@ class HashModelAgent(RetrievalBaseAgent):
             recoder.add_scalar(f'train-epoch-{idx_}/RunLoss', loss.item(), idx)
             recoder.add_scalar(f'train-epoch-{idx_}/RunAcc', acc, idx)
             recoder.add_scalar(f'train-epoch-{idx_}/Acc', total_acc/batch_num, idx)
+            recoder.add_scalar(f'train-epoch-{idx_}/RunRefAcc', ref_acc, idx)
+            recoder.add_scalar(f'train-epoch-{idx_}/RefAcc', total_ref_acc/batch_num, idx)
             
-            pbar.set_description(f'[!] loss(p|q|h|t): {round(total_p_loss/batch_num, 4)}|{round(total_q_loss/batch_num, 4)}|{round(total_h_loss/batch_num, 4)}|{round(total_loss/batch_num, 4)}; acc: {round(acc, 4)}|{round(total_acc/batch_num, 4)}')
+            pbar.set_description(f'[!] loss(p|q|h|t): {round(total_p_loss/batch_num, 4)}|{round(total_q_loss/batch_num, 4)}|{round(total_h_loss/batch_num, 4)}|{round(total_loss/batch_num, 4)}; acc(acc|ref_acc): {round(total_acc/batch_num, 4)}|{round(total_ref_acc/batch_num, 4)}')
         
         recoder.add_scalar(f'train-whole/Loss', total_loss/batch_num, idx_)
         recoder.add_scalar(f'train-whole/PreservedLoss', total_p_loss/batch_num, idx_)
         recoder.add_scalar(f'train-whole/QuantizationLoss', total_q_loss/batch_num, idx_)
         recoder.add_scalar(f'train-whole/HashLoss', total_h_loss/batch_num, idx_)
         recoder.add_scalar(f'train-whole/Acc', total_acc/batch_num, idx_)
+        recoder.add_scalar(f'train-whole/RefAcc', total_ref_acc/batch_num, idx_)
         return round(total_loss / batch_num, 4)
     
     @torch.no_grad()
@@ -258,9 +305,20 @@ class HashModelAgent(RetrievalBaseAgent):
         collections_matrix, collections_text = [], []
         for idx, batch in pbar:
             ids, attn_mask, texts = batch
-            rep = self.model.inference(ids, attn_mask).cpu().numpy()    # [B, E]
+            rid_rep = self.bert_encoder.get_r(ids, attn_mask)
+            rep = self.model.inference(rid_rep).cpu().numpy()    # [B, E]
             collections_matrix.append(rep)
             collections_text.extend(texts)
-        collections_matrix = np.concatenate(collections_matrix)    # [S, E]
+        collections_matrix = np.concatenate(collections_matrix).astype('int')    # [S, E]
+        
+        # nbits * 8
+        assert self.args['hash_code_size'] % 8 == 0
+        collections_matrix = np.split(collections_matrix, int(self.args['hash_code_size']/8), axis=1)
+        collections_matrix = np.ascontiguousarray(
+            np.stack(
+                [np.packbits(i) for i in collections_matrix]
+            ).transpose().astype('uint8')
+        )
+        
         torch.save((collections_matrix, collections_text), path)
         print(f'[!] inference all the utterances over and save into {path}')

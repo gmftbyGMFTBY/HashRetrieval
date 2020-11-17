@@ -13,11 +13,78 @@ def parser_args():
     parser.add_argument('--topk', type=int, default=20)
     parser.add_argument('--test_mode', type=str, default='coarse')
     parser.add_argument('--gpu', type=int, default=-1)
+    parser.add_argument('--dimension', type=int, default=768)
     return parser.parse_args()
 
 class HashVectorCoarseRetrieval:
     
-    pass
+    '''dual-bert or hash-bert'''
+    
+    def __init__(self, dataset, path1, path2, topk=20, max_len=256, gpu=-1, hash_code_size=128):
+        self.vocab = BertTokenizer.from_pretrained('bert-base-chinese')
+        self.bert_model = DualBert()
+        self.model = HashBERTBiEncoderModel(512, hash_code_size)
+        self._load(
+            f'ckpt/{args["dataset"]}/hash-bert/best.pt',
+            f'ckpt/{args["dataset"]}/dual-bert/best.pt',
+        )
+        if torch.cuda.is_available():
+            self.model.cuda()
+            self.bert_model.cuda()
+        self.topk, self.max_len, self.pad, self.hash_code_size = topk, max_len, self.vocab.pad_token_id, hash_code_size
+        
+        self.searcher = Searcher(
+            dataset, vector=True, binary=True, dimension=hash_code_size, gpu=gpu,
+        )
+        self.searcher.load(path1, path2)
+        
+    def _load(self, path1, path2):
+        self.model.load_state_dict(torch.load(path1))
+        self.bert_model.load_state_dict(torch.load(path2))
+        print(f'[!] load model from {path1} and {path2}')
+        
+    def _length_limit(self, ids):
+        if len(ids) > self.max_len:
+            ids = [ids[0]] + ids[-(self.max_len-1):]
+        return ids
+    
+    def generate_mask(self, ids):
+        attn_mask_index = ids.nonzero().tolist()
+        attn_mask_index_x, attn_mask_index_y = [i[0] for i in attn_mask_index], [i[1] for i in attn_mask_index]
+        attn_mask = torch.zeros_like(ids)
+        attn_mask[attn_mask_index_x, attn_mask_index_y] = 1
+        return attn_mask
+        
+    def _tokenize(self, msgs):
+        cids = [torch.LongTensor(self._length_limit(i)) for i in self.vocab.batch_encode_plus(msgs)['input_ids']]
+        cids = pad_sequence(cids, batch_first=True, padding_value=self.pad)
+        mask = self.generate_mask(cids)
+        if torch.cuda.is_available():
+            cids, mask = cids.cuda(), mask.cuda()
+        return cids, mask
+    
+    @torch.no_grad()
+    def _encode(self, msgs):
+        self.model.eval()
+        cids, mask = self._tokenize(msgs)
+        cid_rep = self.bert_model.get_q(cids, mask)    # [B, 768]
+        queries = self.model.get_q(cid_rep).cpu().numpy().astype('int')    # [B, hash]
+        
+        # nbits * 8
+        assert self.hash_code_size % 8 == 0
+        queries = np.split(queries, int(self.hash_code_size/8), axis=1)
+        queries = np.ascontiguousarray(
+            np.stack(
+                [np.packbits(i) for i in queries]
+            ).transpose().astype('uint8')
+        )
+        return queries
+            
+    def search(self, msgs):
+        '''a batch of queries'''
+        queries = self._encode(msgs)
+        rest, t = self.searcher.search(queries, topk=self.topk)
+        return rest, t
 
 class DenseVectorCoarseRetrieval:
     
@@ -140,7 +207,7 @@ class Agent:
     '''chatbot agent:
     1. coarse: es/dense/hash'''
     
-    def __init__(self, dataset, coarse='es', topk=200, gpu=-1, max_len=256):
+    def __init__(self, dataset, coarse='es', topk=200, gpu=-1, max_len=256, dimension=768):
         self.topk, self.coarse = topk, coarse
         if coarse == 'es':
             self.searcher = ESCoarseRetrieval(dataset, topk=topk)
@@ -156,9 +223,12 @@ class Agent:
         elif coarse == 'hash':
             self.searcher = HashVectorCoarseRetrieval(
                 dataset,
-                f'rest/{dataset}/hash-bert.faiss_ckpt',
+                f'data/{dataset}/hash-bert.faiss_ckpt',
+                f'data/{dataset}/hash-bert.corpus_ckpt',
                 topk=topk,
+                gpu=gpu,
                 max_len=max_len,
+                hash_code_size=dimension,
             )
         else:
             raise Exception(f'[!] cannot find the coarse retrieval model: {coarse}')
@@ -202,9 +272,19 @@ if __name__ == "__main__":
         torch.cuda.manual_seed_all(args['seed'])
     
     test_iter = load_utterance_text_dataset(args)
-    agent = Agent(args['dataset'], coarse=args['coarse'], topk=args['topk'], gpu=args['gpu'], max_len=args['max_len'])
+    agent = Agent(
+        args['dataset'], 
+        coarse=args['coarse'], 
+        topk=args['topk'], 
+        gpu=args['gpu'], 
+        max_len=args['max_len'], 
+        dimension=args['dimension'],
+    )
     if args['test_mode'] == 'coarse':
-        agent.test_coarse(test_iter, f'generated/{args["dataset"]}/{args["coarse"]}/rest.txt')
+        agent.test_coarse(
+            test_iter, 
+            f'generated/{args["dataset"]}/{args["coarse"]}/rest.txt'
+        )
     elif args['test_mode'] == 'overall':
         pass
     else:
