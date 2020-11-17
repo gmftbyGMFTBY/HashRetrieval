@@ -45,7 +45,7 @@ curl -X GET localhost:9200/_cat/indices?
 
 es doesn't need the gpu_id (set as 0); faiss needs the gpu_ids (default set as 1,2,3,4)
 
-_If you need to try default hash code size, replace the 128 in chat.sh into the dimension size that you want._
+_If you need to try other hash code size settings, replace the 128 in chat.sh into the dimension size._
 
 ```bash
 ./prepare_corpus.sh <dataset_name> <es/faiss> <es/dual-bert/hash-bert> 1,2,3,4
@@ -53,7 +53,14 @@ _If you need to try default hash code size, replace the 128 in chat.sh into the 
 
 ### 1.5 Chat test
 
-_If you need to try default hash code size, replace the 128 in chat.sh into the dimension size that you want._
+* _If you need to try other hash code size settings, replace the 128 in chat.sh into the dimension size._
+* _Before running the chat.sh script, you should make sure that you already run the following commands correctly_:
+    ```bash
+    # 1. the cross-bert will be used for providing coherence scores
+    ./run.sh train <dataset_name> cross-bert <gpu_ids>
+    # 2. the hash-bert model also needs the dual-bert model parameters
+    ./run.sh train <dataset_name> dual-bert <gpu_ids>
+    ```
 
 ```bash
 # set faiss_cuda as -1 to use cpu, set faiss_cuda i>=0 to use gpu(cuda:i)
@@ -71,8 +78,8 @@ _If you need to try default hash code size, replace the 128 in chat.sh into the 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
 | BM25         | 0.025  | 0.055   | 0.615        | 0.5122        | 8.8 Mb  | 0.0895s/0.1294s    |
-| Dense (cpu)  | 0.204  | 0.413   | 0.9537       | 0.9203        | 802 Mb  | 0.3893s/0.4015s    |
-| Dense (gpu)  | 0.204  | 0.413   | 0.9537       | 0.9203        | 802 Mb  | 0.0406s/0.0398s    |
+| Dense (cpu)  | 0.204  | 0.413   | 0.9537       | 0.9203        | 320 Mb  | 0.3893s/0.4015s    |
+| Dense (gpu)  | 0.204  | 0.413   | 0.9537       | 0.9203        | 320 Mb  | 0.0406s/0.0398s    |
 
 <center> <b> Douban Dataset 442280 utterances (xx.xx%); batch size is 32 </b> </center>
 
@@ -95,23 +102,21 @@ _If you need to try default hash code size, replace the 128 in chat.sh into the 
 ### 2.2 Comparsion between the Dense vector and Hash vector retrieval
 Compare the performance and the time cost
 
-<center> <b> E-Commerce Dataset </b> </center>
+<center> <b> E-Commerce Dataset 109105 utterances (xx.xx%); batch size is 32 </b> </center>
 
-| Method | Top-20 | Top-100 | Average Time Cost (batch=32) | Storage |
-| :----: | :----: | :-----: | :------------------: | :---: |
-| Dense (cpu)  | 0.18   | 0.345   |   1.0119s            | |
-| Dense (gpu)  |  |    |            | |
-| Hash (cpu)  |   |    |              | |
-| Hash (gpu)  |  |    |            | |
+| Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
+| :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
+| BM25         | 0.025  | 0.055   | 0.615        | 0.5122        | 8.8 Mb  | 0.0895s/0.1294s    |
+| Dense (gpu)  | 0.204  | 0.413   | 0.9537       | 0.9203        | 320 Mb  | 0.3893s/0.4015s    |
+| Hash  (gpu)  | 0.123  | 0.294   | 0.8683       | 0.8081        | 1.7 Mb  | 0.0028s/0.0051s    |
 
-<center> <b> Douban Dataset </b> </center>
+<center> <b> Douban Dataset 442280 utterances (xx.xx%); batch size is 32 </b> </center>
 
-| Method | Top-20 | Top-100 | Average Time Cost (batch=32) | Storage |
-| :----: | :----: | :-----: | :------------------: | :---: |
-| Dense (cpu)  |    |    |               | |
-| Dense (gpu)  |  |    |            | |
-| Hash (cpu)  |   |    |              | |
-| Hash (gpu)  |  |    |            | |
+| Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
+| :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
+| BM25         | 0.063  |  0.096  | 0.6957       | 0.6057        | 55.4 Mb | 0.4487s/0.4997s    |
+| Dense (gpu)  | 0.054  |  0.1049 | 0.9403       | 0.9067        | 1.3 Gb  | 0.2s/0.1771s       |
+| Hash  (gpu)  | 0.204  | 0.413   | 0.9537       | 0.9203        | 1.7 Mb  | 0.0406s/0.0398s    |
 
 ### 2.3 Overall comparsion
 cross-bert post rank with different coarse retrieval strategies. 
