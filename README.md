@@ -100,7 +100,7 @@ _If you need to try other hash code size settings, replace the 128 in chat.sh in
 **Conclusion:**
 
 ### 2.2 Comparsion between the Dense vector and Hash vector retrieval
-Compare the performance and the time cost
+Compare the performance and the time cost. _Note: Storage is the size of index and corpus._
 
 <center> <b> E-Commerce Dataset 109105 utterances (xx.xx%); batch size is 32 </b> </center>
 
@@ -108,7 +108,7 @@ Compare the performance and the time cost
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
 | BM25         | 0.025  | 0.055   | 0.615        | 0.5122        | 8.8 Mb  | 0.0895s/0.1294s    |
 | Dense (gpu)  | 0.204  | 0.413   | 0.9537       | 0.9203        | 320 Mb  | 0.3893s/0.4015s    |
-| Hash  (gpu)  | 0.123  | 0.294   | 0.8683       | 0.8081        | 1.7 Mb  | 0.0028s/0.0051s    |
+| Hash  (gpu)  | 0.1777  | 0.354   | 0.9242       | 0.8782        | 1.7 Mb  | 0.0044s/0.0062s    |
 
 <center> <b> Douban Dataset 442280 utterances (xx.xx%); batch size is 32 </b> </center>
 
@@ -116,7 +116,7 @@ Compare the performance and the time cost
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
 | BM25         | 0.063  |  0.096  | 0.6957       | 0.6057        | 55.4 Mb | 0.4487s/0.4997s    |
 | Dense (gpu)  | 0.054  |  0.1049 | 0.9403       | 0.9067        | 1.3 Gb  | 0.2s/0.1771s       |
-| Hash  (gpu)  | 0.204  | 0.413   | 0.9537       | 0.9203        | 1.7 Mb  | 0.0406s/0.0398s    |
+| Hash  (gpu)  | 0.018  | 0.051   | 0.834        | 0.7973        | 6.8 Mb  | 0.0091s/0.0142s    |
 
 ### 2.3 Overall comparsion
 cross-bert post rank with different coarse retrieval strategies. 
@@ -144,7 +144,7 @@ Datasets are: E-Commerce, Douban, LCCC.
 | Hash(gpu)+cross-bert  |  |    |            | |
     
     
-## 3. Configure of the server and environment
+## 3. Test Configuration
 
 * Hardware: 
     * 48 Intel(R) Xeon(R) CPU E5-2650 v4 @ 2.20GHz

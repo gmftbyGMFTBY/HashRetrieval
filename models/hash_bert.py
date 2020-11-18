@@ -121,7 +121,7 @@ class HashBERTBiEncoderModel(nn.Module):
         
         # ===== calculate hash loss ===== #
         matrix = torch.matmul(ctx_hash_code, can_hash_code.T)    # [B, B] similarity matrix
-        label_matrix = torch.eye(batch_size).cuda()
+        label_matrix = self.hash_code_size * torch.eye(batch_size).cuda()
         hash_loss = torch.norm(matrix - label_matrix, p=2).mean()
         
         # ===== calculate hamming distance for accuracy ===== #
