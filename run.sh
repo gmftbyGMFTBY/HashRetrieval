@@ -27,8 +27,12 @@ if [ $mode = 'init' ]; then
         mkdir -p generated/$d/dense
         mkdir -p generated/$d/hash
     done
+elif [ $mode = 'statistic' ]; then
+    python -m utils.statistic --dataset ecommerce
+    python -m utils.statistic --dataset douban
 elif [ $mode = 'backup' ]; then
     cp ckpt/$dataset/$model/* bak/$dataset/$model/
+    cp rest/$dataset/$model/event* bak/$dataset/$model/
 elif [ $mode = 'train' ]; then
     ./run.sh backup $dataset $model
     rm ckpt/$dataset/$model/*

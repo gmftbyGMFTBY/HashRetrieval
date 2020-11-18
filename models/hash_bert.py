@@ -158,6 +158,7 @@ class HashModelAgent(RetrievalBaseAgent):
             'amp_level': 'O2',
             'path': path,
             'q_alpha': 1e-4,
+            'q_alpha_max': 1e-1,
         }
         
         self.model = HashBERTBiEncoderModel(
@@ -171,6 +172,7 @@ class HashModelAgent(RetrievalBaseAgent):
             self.model.cuda()
             self.bert_encoder.cuda()
         if run_mode == 'train':
+            self.args['q_alpha_step'] = (self.args['q_alpha_max'] - self.args['q_alpha']) / int(total_step / len(self.gpu_ids))
             self.optimizer = optim.Adam(
                 self.model.parameters(),
                 lr=self.args['lr'],
@@ -238,6 +240,7 @@ class HashModelAgent(RetrievalBaseAgent):
             loss.backward()
             clip_grad_norm_(self.model.parameters(), self.args['grad_clip'])
             self.optimizer.step()
+            self.args['q_alpha'] += self.args['q_alpha_step']
 
             total_loss += loss.item()
             total_acc += acc
@@ -259,8 +262,9 @@ class HashModelAgent(RetrievalBaseAgent):
             recoder.add_scalar(f'train-epoch-{idx_}/Acc', total_acc/batch_num, idx)
             recoder.add_scalar(f'train-epoch-{idx_}/RunRefAcc', ref_acc, idx)
             recoder.add_scalar(f'train-epoch-{idx_}/RefAcc', total_ref_acc/batch_num, idx)
+            recoder.add_scalar(f'train-epoch-{idx_}/QuantizationAlpha', self.args['q_alpha'], idx)
             
-            pbar.set_description(f'[!] loss(p|q|h|t): {round(total_p_loss/batch_num, 4)}|{round(total_q_loss/batch_num, 4)}|{round(total_h_loss/batch_num, 4)}|{round(total_loss/batch_num, 4)}; acc(acc|ref_acc): {round(total_acc/batch_num, 4)}|{round(total_ref_acc/batch_num, 4)}')
+            pbar.set_description(f'[!] q_weight: {round(self.args["q_alpha"], 4)}; loss(p|q|h|t): {round(total_p_loss/batch_num, 4)}|{round(total_q_loss/batch_num, 4)}|{round(total_h_loss/batch_num, 4)}|{round(total_loss/batch_num, 4)}; acc(acc|ref_acc): {round(total_acc/batch_num, 4)}|{round(total_ref_acc/batch_num, 4)}')
         
         recoder.add_scalar(f'train-whole/Loss', total_loss/batch_num, idx_)
         recoder.add_scalar(f'train-whole/PreservedLoss', total_p_loss/batch_num, idx_)

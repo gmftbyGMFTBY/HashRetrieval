@@ -5,6 +5,7 @@ Very Fast and Low-Memory Open-Domain Retrieval Dialog Systems by Using Semantic 
 
 但是目前的开放域对话系统的粗筛检索模块中，大家基本上都是用的是基于term frequency的方法，这种方法会召回和上下文具有相同的词或者词组的回复，在QA等其他任务中这样的粗筛检索模块是有效的，这是因为具有和问题一样的词的答案极大概率就是包含有正确答案的那个。但是这在开放域对话系统中却并不一定，在开放域对话系统中，和上下文具有相同的词或者词组（主题）的句子未必就是最合适的恢复，这使得使用传统的粗筛检索模块并不能有效的选出最合适的候选回复，从而导致性能的下降，如下所示（仍然需要数据支撑这个观点）：
 
+
 * 上下文：我最喜欢的看惊悚和恐怖电影了
 * 回复：我喜欢看恐怖电影
 * 潜在候选回复：你为什么喜欢看这种猎奇类型呢
@@ -12,13 +13,19 @@ Very Fast and Low-Memory Open-Domain Retrieval Dialog Systems by Using Semantic 
 目前，real-vector检索已被证明可以提升QA系统的效果，但是real-vector是否可以有效的提升开放域对话系统仍然是一个待研究的问题。其次，目前的real-vector检索面临的主要问题就是存储空间大和查询速度相对慢的问题。我们也要提出一个基于Hash的vector语义检索模型，期望可以在不损失大量的效果的前提下，可以获得极快的查询速度和极低的存储大小，以促进检索式对话系统的实际应用和部署，比如移动设备上等（大量的内积运算消耗太多的能量和电力，使用哈希的方法可以极大的降低运算功率）。
 
 ## 1. How to Use
-### 1.0 Init this repo
+### 1.1 Init this repo
 
 ```bash
 ./run.sh init
 ```
 
-### 1.1 Train the dual-bert or hash-bert model
+### 1.2 Statistic of the datasets
+
+```bash
+./run.sh statistic
+```
+
+### 1.3 Train the dual-bert or hash-bert model
 
 dual-bert or hash-bert has two bert models, the batch size is 16
 
@@ -27,7 +34,7 @@ dual-bert or hash-bert has two bert models, the batch size is 16
 ./run.sh train <dataset_name> <dual-bert/hash-bert> <gpu_ids>
 ```
 
-### 1.2 Train the cross-bert model
+### 1.4 Train the cross-bert model
 
 cross-bert has one bert mode, the batch size is 32
 
@@ -35,13 +42,13 @@ cross-bert has one bert mode, the batch size is 32
 ./run.sh train <dataset_name> cross-bert <gpu_ids>
 ```
 
-### 1.3 Obtain the index storage of the Elasticsearch
+### 1.5 Obtain the index storage of the Elasticsearch
 
 ```bash
 curl -X GET localhost:9200/_cat/indices?
 ```
 
-### 1.4 Prepare the Pre-constructed Corpus (ES or FAISS)
+### 1.6 Prepare the Pre-constructed Corpus (ES or FAISS)
 
 es doesn't need the gpu_id (set as 0); faiss needs the gpu_ids (default set as 1,2,3,4)
 
@@ -51,7 +58,7 @@ _If you need to try other hash code size settings, replace the 128 in chat.sh in
 ./prepare_corpus.sh <dataset_name> <es/faiss> <es/dual-bert/hash-bert> 1,2,3,4
 ```
 
-### 1.5 Chat test
+### 1.7 Chat test
 
 * _If you need to try other hash code size settings, replace the 128 in chat.sh into the dimension size._
 * _Before running the chat.sh script, you should make sure that you already run the following commands correctly_:
@@ -60,6 +67,8 @@ _If you need to try other hash code size settings, replace the 128 in chat.sh in
     ./run.sh train <dataset_name> cross-bert <gpu_ids>
     # 2. the hash-bert model also needs the dual-bert model parameters
     ./run.sh train <dataset_name> dual-bert <gpu_ids>
+    # 3. generate the embedding for the pre-constructed corpus
+    ./prepare_corpus.sh <dataset_name> <es/faiss> <es/dual-bert/hash-bert> 1,2,3,4
     ```
 
 ```bash
@@ -73,7 +82,7 @@ _If you need to try other hash code size settings, replace the 128 in chat.sh in
 2. 在这里还需要分析倒排索引查询时间复杂度和内积矩阵运算的时间复杂度作为辅助说明。
 3. Average Coherence scores are calculated by the cross-bert model.
 
-<center> <b> E-Commerce Dataset 109105 utterances (xx.xx%); batch size is 32 </b> </center>
+<center> <b> E-Commerce Dataset 109105 utterances (46.81%); batch size is 32 </b> </center>
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
@@ -81,7 +90,7 @@ _If you need to try other hash code size settings, replace the 128 in chat.sh in
 | Dense (cpu)  | 0.204  | 0.413   | 0.9537       | 0.9203        | 320 Mb  | 0.3893s/0.4015s    |
 | Dense (gpu)  | 0.204  | 0.413   | 0.9537       | 0.9203        | 320 Mb  | 0.0406s/0.0398s    |
 
-<center> <b> Douban Dataset 442280 utterances (xx.xx%); batch size is 32 </b> </center>
+<center> <b> Douban Dataset 442280 utterances (54.57%); batch size is 32 </b> </center>
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
@@ -102,21 +111,21 @@ _If you need to try other hash code size settings, replace the 128 in chat.sh in
 ### 2.2 Comparsion between the Dense vector and Hash vector retrieval
 Compare the performance and the time cost. _Note: Storage is the size of index and corpus._
 
-<center> <b> E-Commerce Dataset 109105 utterances (xx.xx%); batch size is 32 </b> </center>
+<center> <b> E-Commerce Dataset 109105 utterances (xx.xx%); batch size is 32; hash code size is 128 </b> </center>
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
 | BM25         | 0.025  | 0.055   | 0.615        | 0.5122        | 8.8 Mb  | 0.0895s/0.1294s    |
 | Dense (gpu)  | 0.204  | 0.413   | 0.9537       | 0.9203        | 320 Mb  | 0.3893s/0.4015s    |
-| Hash  (gpu)  | 0.1777  | 0.354   | 0.9242       | 0.8782        | 1.7 Mb  | 0.0044s/0.0062s    |
+| Hash  (gpu)  | 0.181  | 0.361   | 0.9278       | 0.8837        | 1.7 Mb  | 0.0023s/0.0044s    |
 
-<center> <b> Douban Dataset 442280 utterances (xx.xx%); batch size is 32 </b> </center>
+<center> <b> Douban Dataset 442280 utterances (xx.xx%); batch size is 32; hash code size is 128 </b> </center>
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
 | BM25         | 0.063  |  0.096  | 0.6957       | 0.6057        | 55.4 Mb | 0.4487s/0.4997s    |
 | Dense (gpu)  | 0.054  |  0.1049 | 0.9403       | 0.9067        | 1.3 Gb  | 0.2s/0.1771s       |
-| Hash  (gpu)  | 0.018  | 0.051   | 0.834        | 0.7973        | 6.8 Mb  | 0.0091s/0.0142s    |
+| Hash  (gpu)  | 0.009   | 0.039  | 0.8352       | 0.7992        | 6.8 Mb  | 0.0088s/0.0147s    |
 
 ### 2.3 Overall comparsion
 cross-bert post rank with different coarse retrieval strategies. 
@@ -125,23 +134,19 @@ Datasets are: E-Commerce, Douban, LCCC.
 
 <center> <b> E-Commerce Dataset </b> </center>
 
-| Method | Top-20 | Top-100 | Average Time Cost (batch=32) | Storage |
-| :----: | :----: | :-----: | :------------------: | :----: |
-| BM25+cross-bert  |    |    |               | |
-| Dense(cpu)+cross-bert  |  |    |            | |
-| Dense(gpu)+cross-bert  |  |    |            | |
-| Hash(cpu)+cross-bert  |   |    |              | |
-| Hash(gpu)+cross-bert  |  |    |            | |
+| Method | Fluency | Coherence | Naturalness |
+| :----: | :----: | :-----: | :------------------: |
+| BM25+cross-bert  |    |    |               |
+| Dense+cross-bert  |  |    |            |
+| Hash+cross-bert  |   |    |              |
 
 <center> <b> Douban Dataset </b> </center>
 
-| Method | Top-20 | Top-100 | Average Time Cost (batch=32) | Storage |
-| :----: | :----: | :-----: | :------------------: | :---: |
-| BM25+cross-bert  |    |    |               | |
-| Dense(cpu)+cross-bert  |  |    |            | |
-| Dense(gpu)+cross-bert  |  |    |            | |
-| Hash(cpu)+cross-bert  |   |    |              | |
-| Hash(gpu)+cross-bert  |  |    |            | |
+| Method | Fluency | Coherence | Naturalness |
+| :----: | :----: | :-----: | :------------------: |
+| BM25+cross-bert  |    |    |               |
+| Dense+cross-bert  |  |    |            |
+| Hash+cross-bert  |   |    |              |
     
     
 ## 3. Test Configuration

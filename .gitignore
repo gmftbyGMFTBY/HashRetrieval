@@ -129,12 +129,5 @@ ckpt/
 benchmarks/*.md
 *pretrained
 
-!data/vocab/*
-!data/config/*
-!data/README.md
-!data/__init__.py
-!data/process_data.py
 !data/stopwords.txt
-!data/run.sh
-!data/runbert.sh
 !requirements.txt
