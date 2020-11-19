@@ -19,15 +19,25 @@ Very Fast and Low-Memory Open-Domain Retrieval Dialog Systems by Using Semantic 
 ./run.sh init
 ```
 
-### 1.2 Statistic of the datasets
+### 1.2 Prepare Dataset and Get Statistic
 
+* Prepare the datasets
+    1. Download the datasets from this link: [password: 8y39](https://pan.baidu.com/s/1Pc00hrJaMZjjHf2MMN9KkA).
+    2. Unzip the the zipped file:
+        ```bash
+        tar -xzvf hashretrieval_datasets.tgz
+        ```
+    3. Copy the `<dataset_name>/train.txt` and `<dataset_name>/test.txt` files to the corresponding dataset folder under `data`.
+
+* Get the statistic of these datasets
 ```bash
 ./run.sh statistic
 ```
 
 ### 1.3 Train the dual-bert or hash-bert model
 
-dual-bert or hash-bert has two bert models, the batch size is 16
+* dual-bert or hash-bert has two bert models, the batch size is 16
+* **dataset_name: ecommerce, douban, zh50w, lccc**
 
 ```bash
 # for example: ./run.sh train ecommerce dual-bert 0,1,2,3
@@ -80,10 +90,10 @@ _If you need to try other hash code size settings, replace the 128 in chat.sh in
 ## 2. Experiment Results
 ### 2.1 Comparsion between Term-Frequency and Dense vector retrieval
 1. the number of the utterances in the pre-constructed database, the ratio of the unconditional responses, the storage (index and corpus), and the time cost (search time).
-2. The Time Complexity ($n$ is the number of the queries, $m$ is the dimension of the real-vector of binary-vector.):
-    * Inverted Index: $O(n)$
-    * Dot production: $O(n\cdot m)$
-    * Hamming Distance: $O(n)$
+2. Search Time Complexity (n is the number of the queries, m is the dimension of the real-vector or binary-vector):
+    * Inverted Index: O(n)
+    * Dot production: O(n*m)
+    * Hamming Distance: O(n)
 3. Average Coherence scores are calculated by the cross-bert model.
 4. The generated responses for each test sample will be saved under `generated/<dataset_name>/<es/dense/hash>`
 
