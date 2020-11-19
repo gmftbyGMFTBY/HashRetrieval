@@ -36,7 +36,8 @@ dual-bert or hash-bert has two bert models, the batch size is 16
 
 ### 1.4 Train the cross-bert model
 
-cross-bert has one bert mode, the batch size is 32
+* cross-bert has one bert mode, the batch size is 32.
+* E-Commerce and Douban datasets use 5e-5 learning ratio, but zh50w and lccc datasets need 2e-5 (5e-5 tends to very bad results).
 
 ```bash
 ./run.sh train <dataset_name> cross-bert <gpu_ids>
@@ -48,20 +49,20 @@ cross-bert has one bert mode, the batch size is 32
 curl -X GET localhost:9200/_cat/indices?
 ```
 
-### 1.6 Prepare the Pre-constructed Corpus (ES or FAISS)
+### 1.6 Prepare the Pre-constructed Corpus (es or faiss)
 
 es doesn't need the gpu_id (set as 0); faiss needs the gpu_ids (default set as 1,2,3,4)
 
-_If you need to try other hash code size settings, replace the 128 in chat.sh into the dimension size._
+_If you need to try other hash code size settings, replace the 128 in chat.sh into other dimension size._
 
 ```bash
 ./prepare_corpus.sh <dataset_name> <es/faiss> <es/dual-bert/hash-bert> 1,2,3,4
 ```
 
-### 1.7 Chat test
+### 1.7 Run Chat Test to obtain the experiment results
 
-* _If you need to try other hash code size settings, replace the 128 in chat.sh into the dimension size._
-* _Before running the chat.sh script, you should make sure that you already run the following commands correctly_:
+* If you need to try other hash code size settings, replace the 128 in chat.sh into other dimension size.
+* Before running the chat.sh script, you should make sure that you already run the following commands correctly:
     ```bash
     # 1. the cross-bert will be used for providing coherence scores
     ./run.sh train <dataset_name> cross-bert <gpu_ids>
@@ -70,17 +71,21 @@ _If you need to try other hash code size settings, replace the 128 in chat.sh in
     # 3. generate the embedding for the pre-constructed corpus
     ./prepare_corpus.sh <dataset_name> <es/faiss> <es/dual-bert/hash-bert> 1,2,3,4
     ```
-
-```bash
-# set faiss_cuda as -1 to use cpu, set faiss_cuda i>=0 to use gpu(cuda:i)
-./chat.sh <dataset_name> <es/dense/hash> <top-k> <cuda> <faiss_cuda>
-```
+* Test
+    ```bash
+    # set faiss_cuda as -1 to use cpu, set faiss_cuda i>=0 to use gpu(cuda:i)
+    ./chat.sh <dataset_name> <es/dense/hash> <top-k> <cuda> <faiss_cuda>
+    ```
 
 ## 2. Experiment Results
 ### 2.1 Comparsion between Term-Frequency and Dense vector retrieval
-1. Compare the performance, the ratio of the unconditional responses, the storage, and the time cost (The pre-constructed corpus is the combination of the train and test dataset).
-2. 在这里还需要分析倒排索引查询时间复杂度和内积矩阵运算的时间复杂度作为辅助说明。
+1. the number of the utterances in the pre-constructed database, the ratio of the unconditional responses, the storage (index and corpus), and the time cost (search time).
+2. The Time Complexity ($n$ is the number of the queries, $m$ is the dimension of the real-vector of binary-vector.):
+    * Inverted Index: $O(n)$
+    * Dot production: $O(n\cdot m)$
+    * Hamming Distance: $O(n)$
 3. Average Coherence scores are calculated by the cross-bert model.
+4. The generated responses for each test sample will be saved under `generated/<dataset_name>/<es/dense/hash>`
 
 <center> <b> E-Commerce Dataset 109105 utterances (46.81%); batch size is 32 </b> </center>
 
@@ -90,7 +95,7 @@ _If you need to try other hash code size settings, replace the 128 in chat.sh in
 | Dense (cpu)  | 0.204  | 0.413   | 0.9537       | 0.9203        | 320 Mb  | 0.3893s/0.4015s    |
 | Dense (gpu)  | 0.204  | 0.413   | 0.9537       | 0.9203        | 320 Mb  | 0.0406s/0.0398s    |
 
-<center> <b> Douban Dataset 442280 utterances (54.57%); batch size is 32 </b> </center>
+<center> <b> Douban Dataset 442280 utterances (54.47%); batch size is 32 </b> </center>
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
@@ -98,20 +103,31 @@ _If you need to try other hash code size settings, replace the 128 in chat.sh in
 | Dense (cpu)  | 0.054  |  0.1049 | 0.9403       | 0.9067        | 1.3 Gb  | 1.6011s/1.6797s    |
 | Dense (gpu)  | 0.054  |  0.1049 | 0.9403       | 0.9067        | 1.3 Gb  | 0.2s/0.1771s       |
 
-<center> <b> LCCC Dataset 1650881 utterances (xx.xx%); batch size is 32 </b> </center>
+<center> <b> Zh50w Dataset 388614 utterances (28.5%); batch size is 32 </b> </center>
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
-| BM25         | 0.0378 | 0.0695  |              |               | 115.9 Mb| 0.1941s/0.2421s    |
-| Dense (cpu)  | 0.0278 | 0.057   |              |               | 4.8 Gb  | 0.48s/0.4869s      |
-| Dense (gpu)  | 0.0278 | 0.057   |              |               | 4.8 Gb  | 0.4662s/0.4622s    |
+| BM25         | 0.0627 | 0.1031  | 0.84         | 0.7341        | 26.8 Mb | 0.0915s/0.1228s    |
+| Dense (cpu)  | 0.044  | 0.0824  | 0.9655       | 0.9424        | 1.2 Gb  | 0.1137s/0.127s     |
+| Dense (gpu)  | 0.044  | 0.0824  | 0.9655       | 0.9424        | 1.2 Gb  | 0.1224s/0.1283s    |
+
+<center> <b> LCCC Dataset 1651899 utterances (33.59%); batch size is 32 </b> </center>
+
+| Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
+| :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
+| BM25         |        |         |              |               | 116 Mb  |     |
+| Dense (cpu)  |        |         |              |               | 4.8 Gb  |     |
+| Dense (gpu)  |        |         |              |               | 4.8 Gb  |     |
 
 **Conclusion:**
 
 ### 2.2 Comparsion between the Dense vector and Hash vector retrieval
-Compare the performance and the time cost. _Note: Storage is the size of index and corpus._
+Compare the performance and the time cost. 
+* Storage is the size of index and corpus.
+* default hash code size is 128
+* default hash-bert batch size is 32, need to check whether more negative samples lead to better performance
 
-<center> <b> E-Commerce Dataset 109105 utterances (xx.xx%); batch size is 32; hash code size is 128 </b> </center>
+<center> <b> E-Commerce Dataset 109105 utterances (46.81%); batch size is 32 </b> </center>
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
@@ -119,13 +135,29 @@ Compare the performance and the time cost. _Note: Storage is the size of index a
 | Dense (gpu)  | 0.204  | 0.413   | 0.9537       | 0.9203        | 320 Mb  | 0.3893s/0.4015s    |
 | Hash  (gpu)  | 0.181  | 0.361   | 0.9278       | 0.8837        | 1.7 Mb  | 0.0023s/0.0044s    |
 
-<center> <b> Douban Dataset 442280 utterances (xx.xx%); batch size is 32; hash code size is 128 </b> </center>
+<center> <b> Douban Dataset 442280 utterances (54.47%); batch size is 32 </b> </center>
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
 | BM25         | 0.063  |  0.096  | 0.6957       | 0.6057        | 55.4 Mb | 0.4487s/0.4997s    |
 | Dense (gpu)  | 0.054  |  0.1049 | 0.9403       | 0.9067        | 1.3 Gb  | 0.2s/0.1771s       |
 | Hash  (gpu)  | 0.009   | 0.039  | 0.8352       | 0.7992        | 6.8 Mb  | 0.0088s/0.0147s    |
+
+<center> <b> Zh50w Dataset 388614 utterances (28.5%); batch size is 32 </b> </center>
+
+| Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
+| :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
+| BM25         | 0.0627 | 0.1031  | 0.84         | 0.7341        | 26.8 Mb | 0.0915s/0.1228s    |
+| Dense (gpu)  | 0.044  | 0.0824  | 0.9655       | 0.9424        | 1.2 Gb  | 0.1224s/0.1283s    |
+| Hash  (gpu)  | 0.0287 | 0.0727  | 0.9108       | 0.8835        | 6.0 Mb  | 0.0066s/0.0101s    |
+
+<center> <b> LCCC Dataset 1651899 utterances (33.59%); batch size is 32 </b> </center>
+
+| Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
+| :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
+| BM25         |        |         |              |               |         |                    |
+| Dense (gpu)  |        |         |              |               |         |                    |
+| Hash  (gpu)  |        |         |              |               |         |                    |
 
 ### 2.3 Overall comparsion
 cross-bert post rank with different coarse retrieval strategies. 
@@ -134,19 +166,35 @@ Datasets are: E-Commerce, Douban, LCCC.
 
 <center> <b> E-Commerce Dataset </b> </center>
 
-| Method | Fluency | Coherence | Naturalness |
-| :----: | :----: | :-----: | :------------------: |
-| BM25+cross-bert  |    |    |               |
-| Dense+cross-bert  |  |    |            |
-| Hash+cross-bert  |   |    |              |
+| Method           | Fluency | Coherence | Naturalness |
+| :--------------: | :-----: | :-------: | :---------: |
+| BM25+cross-bert  |         |           |             |
+| Dense+cross-bert |         |           |             |
+| Hash+cross-bert  |         |           |             |
 
 <center> <b> Douban Dataset </b> </center>
 
-| Method | Fluency | Coherence | Naturalness |
-| :----: | :----: | :-----: | :------------------: |
-| BM25+cross-bert  |    |    |               |
-| Dense+cross-bert  |  |    |            |
-| Hash+cross-bert  |   |    |              |
+| Method           | Fluency | Coherence | Naturalness |
+| :--------------: | :-----: | :-------: | :---------: |
+| BM25+cross-bert  |         |           |             |
+| Dense+cross-bert |         |           |             |
+| Hash+cross-bert  |         |           |             |
+
+<center> <b> Zh50w Dataset </b> </center>
+
+| Method           | Fluency | Coherence | Naturalness |
+| :--------------: | :-----: | :-------: | :---------: |
+| BM25+cross-bert  |         |           |             |
+| Dense+cross-bert |         |           |             |
+| Hash+cross-bert  |         |           |             |
+
+<center> <b> LCCC Dataset </b> </center>
+
+| Method           | Fluency | Coherence | Naturalness |
+| :--------------: | :-----: | :-------: | :---------: |
+| BM25+cross-bert  |         |           |             |
+| Dense+cross-bert |         |           |             |
+| Hash+cross-bert  |         |           |             |
     
     
 ## 3. Test Configuration

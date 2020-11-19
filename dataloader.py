@@ -7,7 +7,7 @@ logging.getLogger("transformers.tokenization_utils").setLevel(logging.ERROR)
 
 # ========== File loader ========== #
 def dual_bert_read_train(path):
-    '''for douban300w; e-commerce; lccc dataset'''
+    '''for douban300w; e-commerce; zh50w dataset'''
     with open(path) as f:
         dataset = []
         for line in f.readlines():
@@ -20,7 +20,7 @@ def dual_bert_read_train(path):
         return dataset
     
 def dual_bert_read_test(path, samples=10):
-    '''for douban300w; e-commerce dataset'''
+    '''for douban300w; e-commerce dataset; zh50w dataset'''
     with open(path) as f:
         dataset = []
         lines = f.readlines()

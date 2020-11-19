@@ -10,7 +10,7 @@ cuda=$4
 
 if [ $mode = 'init' ]; then
     models=(dual-bert cross-bert hash-bert)
-    datasets=(ecommerce douban lccc)
+    datasets=(ecommerce douban zh50w lccc)
     mkdir bak ckpt rest generated
     for m in ${models[@]}
     do
@@ -38,15 +38,17 @@ elif [ $mode = 'train' ]; then
     rm ckpt/$dataset/$model/*
     rm rest/$dataset/$model/events*    # clear the tensorboard cache
     
-    # batch for cross-bert is 32, for dual-bert and hash-bert is 16
+    # batch for cross-bert is 32, for dual-bert is 16. Hash-bert can use larger batch size for better performance.
     if [ $model = 'cross-bert' ]; then
         batch_size=32
+    elif [ $model = 'hash-bert' ]; then
+        batch_size=128
     else
         batch_size=16
     fi
     
     gpu_ids=(${cuda//,/ })
-    CUDA_VISIBLE_DEVICES=$cuda python -m torch.distributed.launch --nproc_per_node=${#gpu_ids[@]} --master_addr 127.0.0.1 --master_port 29400 main.py \
+    CUDA_VISIBLE_DEVICES=$cuda python -m torch.distributed.launch --nproc_per_node=${#gpu_ids[@]} --master_addr 127.0.0.1 --master_port 29500 main.py \
         --dataset $dataset \
         --model $model \
         --mode train \
@@ -82,9 +84,9 @@ elif [ $mode = 'inference' ]; then
         --max_len 256 \
         --seed 50 \
         --batch_size 32
+        
     # reconstruct the results
     python -m utils.reconstruct --model $model --dataset $dataset --num_nodes ${#gpu_ids[@]}
 else
     echo "[!] mode needs to be init/backup/train/test/inference, but got $mode"
 fi
-

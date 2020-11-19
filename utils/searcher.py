@@ -30,7 +30,7 @@ class Searcher:
                     self.searcher = faiss.GpuIndexBinaryFlat(res, dimension)
                 else:
                     self.searcher = faiss.GpuIndexFlatL2(res, dimension)
-                print(f'[!] gpu(cuda:{gpu}) is used for faiss to speed up')
+                print(f'[!] gpu is used for faiss to speed up')
             else:
                 print(f'[!] cpu is used for faiss')
             self.corpus = []

@@ -36,7 +36,7 @@ class BERTRetrievalAgent(RetrievalBaseAgent):
         except:
             raise Exception(f'[!] multi gpu ids are needed, but got: {multi_gpu}')
         self.args = {
-            'lr': 5e-5,
+            'lr': 2e-5,    # 5e-5
             'grad_clip': 1.0,
             'samples': 10,
             'multi_gpu': self.gpu_ids,
@@ -46,7 +46,6 @@ class BERTRetrievalAgent(RetrievalBaseAgent):
             'model': 'bert-base-chinese',
             'amp_level': 'O2',
             'local_rank': local_rank,
-            'warmup_steps': int(0.1 * total_step),
             'total_step': total_step,
         }
         self.vocab = BertTokenizer.from_pretrained(self.args['vocab_file'])
@@ -63,11 +62,6 @@ class BERTRetrievalAgent(RetrievalBaseAgent):
                 self.model, 
                 self.optimizer,
                 opt_level=self.args['amp_level'],
-            )
-            self.scheduler = transformers.get_linear_schedule_with_warmup(
-                self.optimizer, 
-                num_warmup_steps=self.args['warmup_steps'], 
-                num_training_steps=total_step,
             )
             self.model = nn.parallel.DistributedDataParallel(
                 self.model, device_ids=[local_rank], output_device=local_rank,
