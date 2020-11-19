@@ -9,7 +9,7 @@ model=$3
 cuda=$4
 
 if [ $mode = 'init' ]; then
-    models=(dual-bert cross-bert hash-bert)
+    models=(dual-bert cross-bert hash-bert bert-ruber bert-ruber-ft)
     datasets=(ecommerce douban zh50w lccc)
     mkdir bak ckpt rest generated
     for m in ${models[@]}
@@ -38,11 +38,11 @@ elif [ $mode = 'train' ]; then
     rm ckpt/$dataset/$model/*
     rm rest/$dataset/$model/events*    # clear the tensorboard cache
     
-    # batch for cross-bert is 32, for dual-bert is 16. Hash-bert can use larger batch size for better performance.
+    # cross-bert: 32; dual-bert, bert-ruber, bert-ruber-ft: 16; Hash-bert: 16~128.
     if [ $model = 'cross-bert' ]; then
         batch_size=32
     elif [ $model = 'hash-bert' ]; then
-        batch_size=128
+        batch_size=16
     else
         batch_size=16
     fi
@@ -87,6 +87,8 @@ elif [ $mode = 'inference' ]; then
         
     # reconstruct the results
     python -m utils.reconstruct --model $model --dataset $dataset --num_nodes ${#gpu_ids[@]}
+elif [ $model = 'ruber-score' ]; then
+    echo ""
 else
     echo "[!] mode needs to be init/backup/train/test/inference, but got $mode"
 fi

@@ -1,6 +1,7 @@
 from .dual_bert import *
 from .cross_bert import *
 from .hash_bert import *
+from .bert_ruber import *
 
 def load_model(args):
     model_name = args['model']
@@ -25,6 +26,20 @@ def load_model(args):
             run_mode=args['mode'],
             local_rank=args['local_rank'],
             path=args['pretrained_path'],
+        )
+    elif model_name == 'bert-ruber':
+        agent = RUBERMetric(
+            args['multi_gpu'],
+            run_mode=args['mode'],
+            local_rank=args['local_rank'],
+            ft=False,
+        )
+    elif model_name == 'bert-ruber-ft':
+        agent = RUBERMetric(
+            args['multi_gpu'],
+            run_mode=args['mode'],
+            local_rank=args['local_rank'],
+            ft=True,
         )
     else:
         raise Exception(f'[!] cannot find the model {args["model"]}')

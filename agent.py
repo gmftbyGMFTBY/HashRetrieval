@@ -1,7 +1,7 @@
 from header import *
 from models import *
 from utils import *
-from dataloader import load_utterance_text_dataset
+from dataloader import *
 
 def parser_args():
     parser = argparse.ArgumentParser(description='chat parameters')
@@ -205,7 +205,7 @@ class Ranker:
 class Agent:
     
     '''chatbot agent:
-    1. coarse: es/dense/hash'''
+    * coarse: es/dense/hash'''
     
     def __init__(self, dataset, coarse='es', topk=200, gpu=-1, max_len=256, dimension=768):
         self.topk, self.coarse = topk, coarse
@@ -280,12 +280,18 @@ if __name__ == "__main__":
         max_len=args['max_len'], 
         dimension=args['dimension'],
     )
-    if args['test_mode'] == 'coarse':
-        agent.test_coarse(
-            test_iter, 
-            f'generated/{args["dataset"]}/{args["coarse"]}/rest.txt'
-        )
-    elif args['test_mode'] == 'overall':
-        pass
-    else:
-        raise Exception(f'[!] cannot find the test mode: {args["test_mode"]}')
+    # generate the rest file into generated/<dataset_name>/<es/dense/hash>/rest.txt
+    agent.test_coarse(
+        test_iter, 
+        f'generated/{args["dataset"]}/{args["coarse"]}/rest.txt'
+    )
+    
+    # use bert-ruber or bert-ruber-ft metric to give the scores, which is a good replacement of the human evaluation
+    args['mode'] = 'test'
+    ruber_dataset = load_bert_ruber_dataset(args)
+    
+    bert_ruber_ft = RUBERMetric(args['gpu'], run_mode='test', ft=True)
+    bert_ruber_ft.inference(ruber_dataset)
+    
+    bert_ruber = RUBERMetric(args['gpu'], run_mode='test', ft=False)
+    bert_ruber.inference(ruber_dataset)

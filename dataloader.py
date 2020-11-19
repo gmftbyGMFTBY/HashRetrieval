@@ -154,6 +154,59 @@ class BertEmbeddingDataset(Dataset):
         if torch.cuda.is_available():
             ids, attn_mask = ids.cuda(), attn_mask.cuda()
         return ids, attn_mask, texts
+    
+class BertRuberTestDataset(Dataset):
+    
+    def __init__(self, path, max_len=300):
+        self.max_len = max_len
+        self.vocab = BertTokenizer.from_pretrained('bert-base-chinese')
+        self.pad = self.vocab.convert_tokens_to_ids('[PAD]')
+        
+        # read the generated dataset
+        with open(path) as f:
+            data = f.read().split('\n\n')
+            dataset = []
+            for i in data:
+                ctx, _, gen = i.split('\n')
+                ctx = ctx.replace('[CTX]: ', '').strip()
+                gen = gen.replace('[GEN]: ', '').strip()
+                dataset.append((ctx, gen))
+        self.data = []
+        for context, response in tqdm(dataset):
+            item = self.vocab.batch_encode_plus([context, response])
+            cid, rid = item['input_ids']
+            cid, rid = self._length_limit(cid), self._length_limit(rid)
+            self.data.append({'cid': cid, 'rid': rid})
+            
+    def _length_limit(self, ids):
+        if len(ids) > self.max_len:
+            ids = [ids[0]] + ids[-(self.max_len-1):]
+        return ids
+    
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, i):
+        bundle = self.data[i]
+        cid, rid = torch.LongTensor(bundle['cid']), torch.LongTensor(bundle['rid'])
+        return cid, rid
+        
+    def generate_mask(self, ids):
+        attn_mask_index = ids.nonzero().tolist()
+        attn_mask_index_x, attn_mask_index_y = [i[0] for i in attn_mask_index], [i[1] for i in attn_mask_index]
+        attn_mask = torch.zeros_like(ids)
+        attn_mask[attn_mask_index_x, attn_mask_index_y] = 1
+        return attn_mask
+        
+    def collate(self, batch):
+        cid, rid = [i[0] for i in batch], [i[1] for i in batch]
+        cid = pad_sequence(cid, batch_first=True, padding_value=self.pad)
+        rid = pad_sequence(rid, batch_first=True, padding_value=self.pad)
+        cid_mask = self.generate_mask(cid)
+        rid_mask = self.generate_mask(rid)
+        if torch.cuda.is_available():
+            cid, rid, cid_mask, rid_mask = cid.cuda(), rid.cuda(), cid_mask.cuda(), rid_mask.cuda()
+        return cid, rid, cid_mask, rid_mask
 
 class RetrievalDataset(Dataset):
     
@@ -342,6 +395,23 @@ def load_utterance_text_dataset(args):
     iter_ = DataLoader(
         data, shuffle=False, batch_size=args['batch_size'], collate_fn=data.collate,
     )
+    return iter_
+
+def load_bert_ruber_dataset(args):
+    if args['mode'] == 'train':
+        path = f'data/{args["dataset"]}/{args["mode"]}.txt'
+        data = RetrievalDataset(path, mode=args['mode'], max_len=args['max_len'])
+        train_sampler = torch.utils.data.distributed.DistributedSampler(data)
+        iter_ = DataLoader(
+            data, shuffle=False, batch_size=args['batch_size'], collate_fn=data.collate, 
+            sampler=train_sampler,
+        )
+    else:
+        path = f'generated/{args["dataset"]}/rest.txt'
+        data = BertRuberTestDataset(path, max_len=args['max_len'])
+        iter_ = DataLoader(
+            data, shuffle=False, batch_size=args['batch_size'], collate_fn=data.collate,
+        )
     return iter_
 
 def load_bert_irbi_dataset(args):
