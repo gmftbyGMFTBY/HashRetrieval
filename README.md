@@ -1,7 +1,7 @@
 # HashRetrieval
 Very Fast and Low-Memory Open-Domain Retrieval Dialog Systems by Using Semantic Hashing
 
-现有的检索式开放域对话系统都主要分为两个阶段，分别是粗筛检索和精细排序。粗筛阶段目前都是使用BM25为主的term frequency的检索方法从预构建的语料库中选取和上下文主题比较相似的作为候选回复，精细排序阶段使用语义匹配模型从所有的候选回复中选取最合适的一个。目前大家的研究方向都放在构建一个更加精准的精细排序模型，但是目前，随着以bert为主的预训练模型逐渐在各个数据集的各个指标上取得了目前最好的成绩，精细排序模型的性能提升变得非常的困难，这使得提升检索式对话系统的主要瓶颈局限于如何构建一个更好更快的粗筛检索模块上。
+现有的检索式开放域对话系统都主要分为两个阶段，分别是[粗筛检索和精细排序](https://dl.acm.org/doi/10.1145/3394486.3403211)。粗筛阶段目前都是使用BM25为主的term frequency的检索方法从预构建的语料库中选取和上下文主题比较相似的作为候选回复，精细排序阶段使用语义匹配模型从所有的候选回复中选取最合适的一个。目前大家的研究方向都放在构建一个更加精准的精细排序模型，但是目前，随着以bert为主的预训练模型逐渐在各个数据集的各个指标上取得了目前最好的成绩，精细排序模型的性能提升变得非常的困难，这使得提升检索式对话系统的主要瓶颈局限于如何构建一个更好更快的粗筛检索模块上。
 
 但是目前的开放域对话系统的粗筛检索模块中，大家基本上都是用的是基于term frequency的方法，这种方法会召回和上下文具有相同的词或者词组的回复，在QA等其他任务中这样的粗筛检索模块是有效的，这是因为具有和问题一样的词的答案极大概率就是包含有正确答案的那个。但是这在开放域对话系统中却并不一定，在开放域对话系统中，和上下文具有相同的词或者词组（主题）的句子未必就是最合适的恢复，这使得使用传统的粗筛检索模块并不能有效的选出最合适的候选回复，从而导致性能的下降，如下所示（仍然需要数据支撑这个观点）：
 
@@ -48,13 +48,13 @@ pip install -r requirements.txt
 ### 1.4 Train the cross-bert model
 
 * cross-bert has one bert mode, the batch size is 32.
-* E-Commerce and Douban datasets use 5e-5 learning ratio, but zh50w and lccc datasets need 2e-5 (5e-5 not converge).
+* E-Commerce and Douban datasets use 5e-5 learning ratio, but zh50w and lccc datasets need 2e-5 learning ratio (5e-5 not converge).
 
 ```bash
 ./run.sh train <dataset_name> cross-bert <gpu_ids>
 ```
 
-### 1.5 Obtain the index storage of the Elasticsearch
+### 1.5 Obtain the Index Storage of the Elasticsearch
 
 ```bash
 curl -X GET localhost:9200/_cat/indices?
@@ -70,15 +70,15 @@ ls -lh data/<dataset_name>/dual-bert.corpus_ckpt
 
 es doesn't need the gpu_id (set as 0); faiss needs the gpu_ids (default set as 1,2,3,4)
 
-_If you need to try other hash code size settings, replace the 128 in chat.sh into other dimension size._
+_If you need to try other hash code size settings, replace the 128 in `chat.sh` and `models/hash-bert.py` into other dimension size._
 
 ```bash
 ./prepare_corpus.sh <dataset_name> <es/faiss> <es/dual-bert/hash-bert> 1,2,3,4
 ```
 
-### 1.7 Run Chat Test to obtain the experiment results
+### 1.7 Run Chat Test to obtain the Experiment Results
 
-* If you need to try other hash code size settings, replace the 128 in chat.sh into other dimension size.
+* If you need to try other hash code size settings, replace the 128 in `chat.sh` and `models/hash-bert.py`  into other dimension size.
 * Before running the chat.sh script, you should make sure that you already run the following commands correctly:
     ```bash
     # 1. the cross-bert will be used for providing coherence scores
@@ -99,7 +99,7 @@ _If you need to try other hash code size settings, replace the 128 in chat.sh in
 
 ## 2. Experiment Results
 ### 2.1 Comparsion between Term-Frequency and Dense vector retrieval
-1. the number of the utterances in the pre-constructed database, the ratio of the unconditional responses, the storage (only the faiss index and elasticsearch inverted index), and the search time cost).
+1. the number of the utterances in the pre-constructed database, the ratio of the unconditional responses, the storage (only consider the faiss index and elasticsearch inverted index), and the search time cost.
 2. Search Time Complexity (n is the number of the queries, m is the dimension of the real-vector or binary-vector):
     * Inverted Index: O(n)
     * Dot production: O(n*m)
@@ -135,13 +135,13 @@ _If you need to try other hash code size settings, replace the 128 in chat.sh in
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
-| BM25         |        |         |              |               | 44 Mb   |     |
-| Dense (cpu)  |        |         |              |               | 4.8 Gb  |     |
-| Dense (gpu)  |        |         |              |               | 4.8 Gb  |     |
+| BM25         | 0.0376 | 0.07    | 0.8966       | 0.8253        | 44 Mb   | 0.1901s/0.247s     |
+| Dense (cpu)  | 0.0351 | 0.0778  | 0.9832       | 0.9726        | 4.8 Gb  |     |
+| Dense (gpu)  | 0.0351 | 0.0778  | 0.9832       | 0.9726        | 4.8 Gb  | 0.4586s/0.5722s    |
 
 **Conclusion:**
 
-### 2.2 Comparsion between the Dense vector and Hash vector retrieval
+### 2.2 Comparsion between Dense vector and Hash vector retrieval
 * Storage is the size of inverted index or the vector index.
 * default hash code size is 128.
 * default hash-bert batch size is 32.
@@ -174,8 +174,8 @@ _If you need to try other hash code size settings, replace the 128 in chat.sh in
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
-| BM25         |        |         |              |               | 44 Mb   |                    |
-| Dense (gpu)  |        |         |              |               | 4.8 Gb  |                    |
+| BM25         | 0.0376 | 0.07    | 0.8966       | 0.8253        | 44 Mb   | 0.1901s/0.247s     |
+| Dense (gpu)  | 0.0351 | 0.0778  | 0.9832       | 0.9726        | 4.8 Gb  | 0.4586s/0.5722s    |
 | Hash  (gpu)  |        |         |              |               |         |                    |
 
 **Conclusion:**
@@ -183,7 +183,7 @@ _If you need to try other hash code size settings, replace the 128 in chat.sh in
 ### 2.3 Overall comparsion (Coarse retrieval + Cross-bert Post Rank)
 The metrics we used here are shown as follows:
 * BERT-RUBER: [RUBER](https://arxiv.org/pdf/1701.03079.pdf) proves that effectiveness of the learning-based open-domain dialog evaluation, which can be a replacement of the human evaluation.
-* BERT-RUBER-fine: RUBER with the fine-tuned Bert model, better then BERT-RUBER.
+* BERT-RUBER-ft: RUBER with the fine-tuned Bert model, better then BERT-RUBER 
 
 <center> <b> E-Commerce Dataset </b> </center>
 
@@ -225,25 +225,25 @@ The metrics we used here are shown as follows:
 
 <center> <b> E-Commerce Dataset 109105 utterances (46.81%); batch size is 32 </b> </center>
 
-| Method        | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
-| :-----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
-| BM25          | 0.025  | 0.055   | 0.615        | 0.5122        | 8.8 Mb  | 0.0895s/0.1294s    |
-| Dense (gpu)   | 0.204  | 0.413   | 0.9537       | 0.9203        | 320 Mb  | 0.3893s/0.4015s    |
-| Hash-16 (gpu) |   |    |     |         |  |    |
-| Hash-32 (gpu) |   |    |     |         |  |    |
-| Hash-48 (gpu) |   |    |     |         |  |    |
-| Hash-64 (gpu) |   |    |     |         |  |    |
-| Hash-128 (gpu)| 0.181  | 0.361   | 0.9278       | 0.8837        | 1.7 Mb  | 0.0023s/0.0044s    |
+| Method        | Coherence-20 | Coherence-100 | BERT-RUBER | BERT-RUBER-ft | Storage | Time Cost (20/100) |
+| :-----------: | :----------: | :-----------: | :--------: | :-----------: | :-----: | :----------------: |
+| BM25          | 0.615        | 0.5122        |            |               | 8.8 Mb  | 0.0895s/0.1294s    |
+| Dense (gpu)   | 0.9537       | 0.9203        |            |               | 320 Mb  | 0.3893s/0.4015s    |
+| Hash-16 (gpu) |     |         |  |    |  | |
+| Hash-32 (gpu) |     |         |  |    |  | |
+| Hash-48 (gpu) |     |         |  |    |  | |
+| Hash-64 (gpu) |     |         |  |    |  | |
+| Hash-128 (gpu)| 0.9278       | 0.8837        |            |              | 1.7 Mb  | 0.0023s/0.0044s    |
 
-#### 2.5.1 The Number of the Negative samples
+#### 2.5.1 The Number of the Negative Samples
 
 <center> <b> E-Commerce Dataset 109105 utterances (46.81%) </b> </center>
 
-| Method        | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
-| :-----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
-| BM25          | 0.025  | 0.055   | 0.615        | 0.5122        | 8.8 Mb  | 0.0895s/0.1294s    |
-| Dense (gpu)   | 0.204  | 0.413   | 0.9537       | 0.9203        | 320 Mb  | 0.3893s/0.4015s    |
-| Hash-16 (gpu) | 0.181  | 0.361   | 0.9278       | 0.8837        | 1.7 Mb  | 0.0023s/0.0044s    |
+| Method        | Coherence-20 | Coherence-100 | BERT-RUBER | BERT-RUBER-ft | Storage | Time Cost (20/100) |
+| :-----------: | :----------: | :-----------: | :--------: | :-----------: | :-----: | :----------------: |
+| BM25          | 0.615        | 0.5122        |            |               | 8.8 Mb  | 0.0895s/0.1294s    |
+| Dense (gpu)   | 0.9537       | 0.9203        |            |               | 320 Mb  | 0.3893s/0.4015s    |
+| Hash-16 (gpu) | 0.9278       | 0.8837        |            |               | 1.7 Mb  | 0.0023s/0.0044s    |
 | Hash-32 (gpu) |   |    |     |         |  |    |
 | Hash-48 (gpu) |   |    |     |         |  |    |
 | Hash-64 (gpu) |   |    |     |         |  |    |
@@ -251,7 +251,13 @@ The metrics we used here are shown as follows:
 
 **Conclusion:**
 
-## 3. Test Configuration
+## 3. Case Study
+
+### 3.1 Coarse Retrieval Case Study
+
+### 3.2 Overall Case Study
+
+## 4. Test Configuration
 
 * Hardware: 
     * 48 Intel(R) Xeon(R) CPU E5-2650 v4 @ 2.20GHz
@@ -264,7 +270,8 @@ The metrics we used here are shown as follows:
     * faiss-gpu 1.6.3
     * Elasticsearch 7.6.1 & Lucene 8.4.0 & elasticsearch-py 7.6.0
 
-## 4. Future works
+## 5. Future works
 
-* Multiple heads hash module, more heads means more information of the semantic embedding saved.
-* Combine the advantanges of BM25 and dense vector, sensitive to the overlap important words but also save the semantic embeddings.
+* Multiple heads hash module, which can save more semantic embedding information.
+* Combine the advantanges of BM25 and dense vector. A vector retrieval model which is sensitive to the keywords overlap.
+* Coherence-20/100和Top-20/100之间的差别说清楚，为什么用coherence不用top要说清，说服别人

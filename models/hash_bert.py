@@ -152,7 +152,7 @@ class HashModelAgent(RetrievalBaseAgent):
             'local_rank': local_rank,
             'dropout': 0.1,
             'hidden_size': 512,
-            'hash_code_size': 128,
+            'hash_code_size': 16,
             'total_steps': total_step,
             'samples': 10,
             'amp_level': 'O2',
@@ -220,7 +220,8 @@ class HashModelAgent(RetrievalBaseAgent):
         print(f'[!] load model from {path}')
         
     def load_encoder(self, path):
-        state_dict = torch.load(path)
+        '''MUST LOAD TO CPU FIRST'''
+        state_dict = torch.load(path, map_location=torch.device('cpu'))
         self.bert_encoder.load_state_dict(state_dict)
         print(f'[!] load the dual-bert model parameters successfully')
         

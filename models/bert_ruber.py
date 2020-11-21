@@ -6,7 +6,7 @@ class BertRUBER(nn.Module):
     
     '''sigmoid for providing the coherence scores'''
     
-    def __init__(self, ft=True):
+    def __init__(self, dropout=0.1, ft=False):
         super(BertRUBER, self).__init__()
         self.ctx_encoder = BertEmbedding()
         self.res_encoder = BertEmbedding()
@@ -20,6 +20,7 @@ class BertRUBER(nn.Module):
         self.criterion = nn.BCELoss()
         
     def forward(self, cid, rid, cid_mask, rid_mask):
+        ipdb.set_trace()
         batch_size = cid.shape[0]
         if self.ft:
             cid_rep, rid_rep = self.ctx_encoder(cid, cid_mask), self.res_encoder(rid, rid_mask)
@@ -72,9 +73,11 @@ class RUBERMetric(RetrievalBaseAgent):
             'model': 'bert-base-chinese',
             'amp_level': 'O2',
             'local_rank': local_rank,
+            'dropout': 0.1,
+            'ft': ft,
         }
         self.vocab = BertTokenizer.from_pretrained(self.args['vocab_file'])
-        self.model = BertRUBER(ft=ft)
+        self.model = BertRUBER(dropout=self.args['dropout'], ft=ft)
         self.criterion = nn.BCELoss()
         if torch.cuda.is_available():
             self.model.cuda()
@@ -131,7 +134,7 @@ class RUBERMetric(RetrievalBaseAgent):
             scores = self.model.predict(*batch).cpu().numpy()    # [B]
             rest.extend(scores)
         score = round(np.mean(rest), 4)
-        if self.ft:
+        if self.args['ft']:
             print(f'[!] Bert-RUBER-ft score: {score}')
         else:
             print(f'[!] Bert-RUBER score: {score}')

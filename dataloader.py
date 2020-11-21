@@ -34,7 +34,7 @@ def dual_bert_read_test(path, samples=10):
                 label1 += label
                 assert label1 <= 1
                 ctx = ' [SEP] '.join([''.join(i.split()) for i in ctx])
-                res = ''.join(res.split()) 
+                res = ''.join(res.split())
                 session.append((label, res))
                 step += 1
             session = (ctx, session)
@@ -382,7 +382,7 @@ def load_dataset(args):
     if args['mode'] == 'inference':
         return load_bert_embd_dataset(args)
     else:
-        if args['model'] in ['dual-bert', 'hash-bert']:
+        if args['model'] in ['bert-ruber', 'bert-ruber-ft', 'dual-bert', 'hash-bert']:
             return load_bert_irbi_dataset(args)
         elif args['model'] == 'cross-bert':
             return load_bert_ir_dataset(args)
@@ -407,7 +407,7 @@ def load_bert_ruber_dataset(args):
             sampler=train_sampler,
         )
     else:
-        path = f'generated/{args["dataset"]}/rest.txt'
+        path = f'generated/{args["dataset"]}/{args["coarse"]}/rest.txt'
         data = BertRuberTestDataset(path, max_len=args['max_len'])
         iter_ = DataLoader(
             data, shuffle=False, batch_size=args['batch_size'], collate_fn=data.collate,
