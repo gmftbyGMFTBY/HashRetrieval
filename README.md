@@ -1,5 +1,5 @@
 # HashRetrieval
-Very Fast and Low-Memory Open-Domain Retrieval Dialog Systems by Using Semantic Hashing
+The codes of the paper: Ultra-Fast and Low-Memory Open-Domain Retrieval Dialog Systems by Using Semantic Hashing
 
 现有的检索式开放域对话系统都主要分为两个阶段，分别是[粗筛检索和精细排序](https://dl.acm.org/doi/10.1145/3394486.3403211)。粗筛阶段目前都是使用BM25为主的term frequency的检索方法从预构建的语料库中选取和上下文主题比较相似的作为候选回复，精细排序阶段使用语义匹配模型从所有的候选回复中选取最合适的一个。目前大家的研究方向都放在构建一个更加精准的精细排序模型，但是目前，随着以bert为主的预训练模型逐渐在各个数据集的各个指标上取得了目前最好的成绩，精细排序模型的性能提升变得非常的困难，这使得提升检索式对话系统的主要瓶颈局限于如何构建一个更好更快的粗筛检索模块上。
 
@@ -23,7 +23,19 @@ pip install -r requirements.txt
 ### 1.2 Prepare Dataset and Get Statistic
 
 * Prepare the datasets
-    1. Download the datasets from this link: [password is 8y39](https://pan.baidu.com/s/1Pc00hrJaMZjjHf2MMN9KkA).
+    1. Download the Preprocessed datasets by us from this link: [password is 8y39](https://pan.baidu.com/s/1Pc00hrJaMZjjHf2MMN9KkA):
+    
+    <center>The metadata of four datasets are shown<\center>
+    
+    |    Datasets    | Train  | Test    | Source |
+    |:--------------:|:------:|:-------:|:------:|
+    |   E-Commerce   | 500000 | 1000    | [Data](https://drive.google.com/file/d/154J-neBo20ABtSmJDvm7DK0eTuieAuvw/view)       |
+    |     Douban     | 500000 | 667     | [Data](https://github.com/MarkWuNLP/MultiTurnResponseSelection) |
+    |      Zh50w     | 994002 | 2998    | [Data](https://github.com/yangjianxin1/GPT2-chitchat)       |
+    | LCCC (partial) | 2000000| 10000   | [Data](https://github.com/thu-coai/CDial-GPT)       |
+    
+    _Note: Original Douban Multi-turn Datasets contains 1000 sessions in test split, but only 667 have the positive samples in it (legal)._
+        
     2. Unzip the the zipped file:
         ```bash
         tar -xzvf hashretrieval_datasets.tgz
@@ -94,6 +106,7 @@ _If you need to try other hash code size settings, replace the 128 in `chat.sh` 
     # set faiss_cuda as -1 to use cpu, set faiss_cuda i>=0 to use gpu(cuda:i)
     ./chat.sh <dataset_name> <es/dense/hash> <top-k> <cuda> <faiss_cuda>
     ```
+    The generated responses will be saved under `generated/<dataset_name>/<es/dense/hash>`
 
 ### 1.8 Sample Results for Annotation
 
@@ -106,14 +119,14 @@ If you want to annotate and reproduce the results in Section 2.3, you can run th
 Then you can find the sampled files under four `generated/<dataset_name>` folders.
 
 ## 2. Experiment Results
-### 2.1 Comparsion between Term-Frequency and Dense vector retrieval
 1. the number of the utterances in the pre-constructed database, the ratio of the unconditional responses, the storage (only consider the faiss index and elasticsearch inverted index), and the search time cost.
 2. Search Time Complexity (n is the number of the queries, m is the dimension of the real-vector or binary-vector):
     * Inverted Index: O(n)
     * Dot production: O(n*m)
     * Hamming Distance: O(n)
 3. Average Coherence scores are calculated by the cross-bert model.
-4. The generated responses for each test sample will be saved under `generated/<dataset_name>/<es/dense/hash>`
+    
+### 2.1 Comparsion between Term-Frequency and Dense vector retrieval
 
 <center> <b> E-Commerce Dataset 109105 utterances (46.81%) </b> </center>
 
