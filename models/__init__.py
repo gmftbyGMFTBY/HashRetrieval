@@ -21,6 +21,8 @@ def load_model(args):
         )
     elif model_name == 'hash-bert':
         agent = HashModelAgent(
+            args["hash_code_size"],
+            args["neg_samples"],
             args['multi_gpu'],
             args['total_steps'],
             run_mode=args['mode'],

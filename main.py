@@ -12,6 +12,8 @@ def parser_args():
     parser.add_argument('--seed', type=float, default=30)
     parser.add_argument('--max_len', type=int, default=300)
     parser.add_argument('--multi_gpu', type=str, default=None)
+    parser.add_argument('--hash_code_size', type=int, default=128)
+    parser.add_argument('--neg_samples', type=int, default=16)
     parser.add_argument('--local_rank', type=int)
     return parser.parse_args()
 

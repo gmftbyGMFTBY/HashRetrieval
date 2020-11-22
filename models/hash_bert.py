@@ -35,7 +35,7 @@ class DualBert(nn.Module):
 
 class HashBERTBiEncoderModel(nn.Module):
     
-    def __init__(self, hidden_size, hash_code_size, dropout=0.):
+    def __init__(self, hidden_size, hash_code_size, dropout=0.1):
         super(HashBERTBiEncoderModel, self).__init__()
         self.hash_code_size = hash_code_size
         
@@ -139,7 +139,7 @@ class HashBERTBiEncoderModel(nn.Module):
 
 class HashModelAgent(RetrievalBaseAgent):
     
-    def __init__(self, multi_gpu, total_step, run_mode='train', local_rank=0, path=None):
+    def __init__(self, hash_code_size, neg_samples, multi_gpu, total_step, run_mode='train', local_rank=0, path=None):
         super(HashModelAgent, self).__init__()
         try:
             self.gpu_ids = list(range(len(multi_gpu.split(',')))) 
@@ -152,7 +152,8 @@ class HashModelAgent(RetrievalBaseAgent):
             'local_rank': local_rank,
             'dropout': 0.1,
             'hidden_size': 512,
-            'hash_code_size': 16,
+            'hash_code_size': hash_code_size,
+            'neg_samples': neg_samples,
             'total_steps': total_step,
             'samples': 10,
             'amp_level': 'O2',
@@ -212,7 +213,7 @@ class HashModelAgent(RetrievalBaseAgent):
     def load_model(self, path):
         # load the bert encoder
         self.load_encoder(self.args['path'])
-        state_dict = torch.load(path)
+        state_dict = torch.load(path, map_location=torch.device('cpu'))
         try:
             self.model.module.load_state_dict(state_dict)
         except:

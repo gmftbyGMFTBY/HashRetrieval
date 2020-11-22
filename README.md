@@ -79,6 +79,7 @@ _If you need to try other hash code size settings, replace the 128 in `chat.sh` 
 ### 1.7 Run Chat Test to obtain the Experiment Results
 
 * If you need to try other hash code size settings, replace the 128 in `chat.sh` and `models/hash-bert.py`  into other dimension size.
+* If you need to change the number of the negative samples, just replace the batch size in `run.sh` with the number that you want.
 * Before running the chat.sh script, you should make sure that you already run the following commands correctly:
     ```bash
     # 1. the cross-bert will be used for providing coherence scores
@@ -88,8 +89,8 @@ _If you need to try other hash code size settings, replace the 128 in `chat.sh` 
     # 3. generate the embedding for the pre-constructed corpus
     ./prepare_corpus.sh <dataset_name> <es/faiss> <es/dual-bert/hash-bert> 1,2,3,4
     # 4. train the state-of-the-art open-domain dialog evaluation metric bert-ruber and bert-ruber-ft
-    ./run.sh train <dataset_name> bert-ruber <gpu_ids>
-    ./run.sh train <dataset_name> bert-ruber-ft <gpu_ids>
+    # ./run.sh train <dataset_name> bert-ruber <gpu_ids>
+    # ./run.sh train <dataset_name> bert-ruber-ft <gpu_ids>
     ```
 * Test
     ```bash
@@ -107,7 +108,7 @@ _If you need to try other hash code size settings, replace the 128 in `chat.sh` 
 3. Average Coherence scores are calculated by the cross-bert model.
 4. The generated responses for each test sample will be saved under `generated/<dataset_name>/<es/dense/hash>`
 
-<center> <b> E-Commerce Dataset 109105 utterances (46.81%); batch size is 32 </b> </center>
+<center> <b> E-Commerce Dataset 109105 utterances (46.81%) </b> </center>
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
@@ -115,7 +116,7 @@ _If you need to try other hash code size settings, replace the 128 in `chat.sh` 
 | Dense (cpu)  | 0.204  | 0.413   | 0.9537       | 0.9203        | 320 Mb  | 0.3893s/0.4015s    |
 | Dense (gpu)  | 0.204  | 0.413   | 0.9537       | 0.9203        | 320 Mb  | 0.0406s/0.0398s    |
 
-<center> <b> Douban Dataset 442280 utterances (54.47%); batch size is 32 </b> </center>
+<center> <b> Douban Dataset 442280 utterances (54.47%) </b> </center>
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
@@ -123,7 +124,7 @@ _If you need to try other hash code size settings, replace the 128 in `chat.sh` 
 | Dense (cpu)  | 0.054  |  0.1049 | 0.9403       | 0.9067        | 1.3 Gb  | 1.6011s/1.6797s    |
 | Dense (gpu)  | 0.054  |  0.1049 | 0.9403       | 0.9067        | 1.3 Gb  | 0.2s/0.1771s       |
 
-<center> <b> Zh50w Dataset 388614 utterances (28.5%); batch size is 32 </b> </center>
+<center> <b> Zh50w Dataset 388614 utterances (28.5%) </b> </center>
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
@@ -131,7 +132,7 @@ _If you need to try other hash code size settings, replace the 128 in `chat.sh` 
 | Dense (cpu)  | 0.044  | 0.0824  | 0.9655       | 0.9424        | 1.2 Gb  | 0.1137s/0.127s     |
 | Dense (gpu)  | 0.044  | 0.0824  | 0.9655       | 0.9424        | 1.2 Gb  | 0.1224s/0.1283s    |
 
-<center> <b> LCCC Dataset 1651899 utterances (33.59%); batch size is 32 </b> </center>
+<center> <b> LCCC Dataset 1651899 utterances (33.59%) </b> </center>
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
@@ -143,26 +144,26 @@ _If you need to try other hash code size settings, replace the 128 in `chat.sh` 
 
 ### 2.2 Comparsion between Dense vector and Hash vector retrieval
 * Storage is the size of inverted index or the vector index.
-* default hash code size is 128.
-* default hash-bert batch size is 32.
+* default hash code size is 512.
+* default hash-bert batch size is 16.
 
-<center> <b> E-Commerce Dataset 109105 utterances (46.81%); batch size is 32 </b> </center>
+<center> <b> E-Commerce Dataset 109105 utterances (46.81%) </b> </center>
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
 | BM25         | 0.025  | 0.055   | 0.615        | 0.5122        | 2.9 Mb  | 0.0895s/0.1294s    |
 | Dense (gpu)  | 0.204  | 0.413   | 0.9537       | 0.9203        | 320 Mb  | 0.3893s/0.4015s    |
-| Hash  (gpu)  | 0.181  | 0.361   | 0.9278       | 0.8837        | 1.7 Mb  | 0.0023s/0.0044s    |
+| Hash  (gpu)  | 0.214  | 0.382   | 0.944        | 0.9065        | 6.7 Mb  | 0.0093s/0.0187s    |
 
-<center> <b> Douban Dataset 442280 utterances (54.47%); batch size is 32 </b> </center>
+<center> <b> Douban Dataset 442280 utterances (54.47%) </b> </center>
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
 | BM25         | 0.063  |  0.096  | 0.6957       | 0.6057        | 21.4 Mb | 0.4487s/0.4997s    |
-| Dense (gpu)  | 0.054  |  0.1049 | 0.9403       | 0.9067        | 1.3 Gb  | 0.2s/0.1771s       |
-| Hash  (gpu)  | 0.009   | 0.039  | 0.8352       | 0.7992        | 6.8 Mb  | 0.0088s/0.0147s    |
+| Dense (gpu)  | 0.054  | 0.1049  | 0.9403       | 0.9067        | 1.3 Gb  | 0.2s/0.1771s       |
+| Hash  (gpu)  | 0.0225 | 0.066   | 0.8838       | 0.8474        | 27 Mb   | 0.0523s/0.0452s    |
 
-<center> <b> Zh50w Dataset 388614 utterances (28.5%); batch size is 32 </b> </center>
+<center> <b> Zh50w Dataset 388614 utterances (28.5%) </b> </center>
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
@@ -170,13 +171,13 @@ _If you need to try other hash code size settings, replace the 128 in `chat.sh` 
 | Dense (gpu)  | 0.044  | 0.0824  | 0.9655       | 0.9424        | 1.2 Gb  | 0.1224s/0.1283s    |
 | Hash  (gpu)  | 0.0287 | 0.0727  | 0.9108       | 0.8835        | 6.0 Mb  | 0.0066s/0.0101s    |
 
-<center> <b> LCCC Dataset 1651899 utterances (33.59%); batch size is 32 </b> </center>
+<center> <b> LCCC Dataset 1651899 utterances (33.59%) </b> </center>
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
 | BM25         | 0.0376 | 0.07    | 0.8966       | 0.8253        | 44 Mb   | 0.1901s/0.247s     |
 | Dense (gpu)  | 0.0351 | 0.0778  | 0.9832       | 0.9726        | 4.8 Gb  | 0.4586s/0.5722s    |
-| Hash  (gpu)  |        |         |              |               |         |                    |
+| Hash  (gpu)  | 0.0204 | 0.0494  | 0.9663       | 0.9526        | 101 Mb  | 0.0764s/0.094s     |
 
 **Conclusion:**
 
@@ -223,33 +224,41 @@ The metrics we used here are shown as follows:
 
 #### 2.4.1 Hash code size
 
-<center> <b> E-Commerce Dataset 109105 utterances (46.81%); batch size is 32 </b> </center>
-
-| Method        | Coherence-20 | Coherence-100 | BERT-RUBER | BERT-RUBER-ft | Storage | Time Cost (20/100) |
-| :-----------: | :----------: | :-----------: | :--------: | :-----------: | :-----: | :----------------: |
-| BM25          | 0.615        | 0.5122        |            |               | 8.8 Mb  | 0.0895s/0.1294s    |
-| Dense (gpu)   | 0.9537       | 0.9203        |            |               | 320 Mb  | 0.3893s/0.4015s    |
-| Hash-16 (gpu) |     |         |  |    |  | |
-| Hash-32 (gpu) |     |         |  |    |  | |
-| Hash-48 (gpu) |     |         |  |    |  | |
-| Hash-64 (gpu) |     |         |  |    |  | |
-| Hash-128 (gpu)| 0.9278       | 0.8837        |            |              | 1.7 Mb  | 0.0023s/0.0044s    |
-
-#### 2.5.1 The Number of the Negative Samples
+_Note: Default Number the of Negative Samples is 16_
 
 <center> <b> E-Commerce Dataset 109105 utterances (46.81%) </b> </center>
 
-| Method        | Coherence-20 | Coherence-100 | BERT-RUBER | BERT-RUBER-ft | Storage | Time Cost (20/100) |
-| :-----------: | :----------: | :-----------: | :--------: | :-----------: | :-----: | :----------------: |
-| BM25          | 0.615        | 0.5122        |            |               | 8.8 Mb  | 0.0895s/0.1294s    |
-| Dense (gpu)   | 0.9537       | 0.9203        |            |               | 320 Mb  | 0.3893s/0.4015s    |
-| Hash-16 (gpu) | 0.9278       | 0.8837        |            |               | 1.7 Mb  | 0.0023s/0.0044s    |
-| Hash-32 (gpu) |   |    |     |         |  |    |
-| Hash-48 (gpu) |   |    |     |         |  |    |
-| Hash-64 (gpu) |   |    |     |         |  |    |
-| Hash-128 (gpu)|   |    |     |         |  |    |
+| Method        | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
+| :-----------: | :----------: | :-----------: | :-----: | :----------------: |
+| BM25          | 0.615        | 0.5122        | 8.8 Mb  | 0.0895s/0.1294s    |
+| Hash-16 (gpu) | 0.6819       | 0.6284        | 214 Kb  | 0.0026s/0.0051s    |
+| Hash-32 (gpu) | 0.8271       | 0.7714        | 427 Kb  | 0.0017s/0.0031s    |
+| Hash-48 (gpu) | 0.8737       | 0.8136        | 640 Kb  | 0.0064s/0.0081s    |
+| Hash-64 (gpu) | 0.8942       | 0.8364        | 853 Kb  | 0.0018s/0.0044s    |
+| Hash-128 (gpu)| 0.9278       | 0.8837        | 1.7 Mb  | 0.0023s/0.0044s    |
+| Hash-256 (gpu)| 0.9376       | 0.8976        | 3.4 Mb  | 0.0032s/0.0106s    |
+| Hash-512 (gpu)| 0.944        | 0.9065        | 6.7 Mb  | 0.0092s/0.0164s    |
+|Hash-1024 (gpu)| 0.9473       | 0.9134        | 14 Mb   | 0.0194s/0.0184s    |
+| Dense (gpu)   | 0.9537       | 0.9203        | 320 Mb  | 0.3893s/0.4015s    |
+
+#### 2.5.1 The Number of the Negative Samples
+
+_Note: Default Hash Code Size is 512_
+
+<center> <b> E-Commerce Dataset 109105 utterances (46.81%) </b> </center>
+
+| Method        | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
+| :-----------: | :----------: | :-----------: | :-----: | :----------------: |
+| BM25          | 0.615        | 0.5122        | 8.8 Mb  | 0.0895s/0.1294s    |
+| Hash-16 (gpu) | 0.944        | 0.9065        | 6.7 Mb  | 0.0092s/0.0164s    |
+| Hash-32 (gpu) | 0.9412       | 0.9041        | 6.7 Mb  | 0.0084s/0.0134s    |
+| Hash-64 (gpu) | 0.9425       | 0.902         | 6.7 Mb  | 0.0089s/0.0122s    |
+| Hash-128 (gpu)| 0.9398       | 0.8974        | 6.7 Mb  | 0.0091s/0.0108s    |
+| Dense (gpu)   | 0.9537       | 0.9203        | 320 Mb  | 0.3893s/0.4015s    |
 
 **Conclusion:**
+* The number of the negative samples don't affect the performance
+* The bigger hash code size, the higher performance. Best hash code size is 512 (1024).
 
 ## 3. Case Study
 
@@ -273,5 +282,5 @@ The metrics we used here are shown as follows:
 ## 5. Future works
 
 * Multiple heads hash module, which can save more semantic embedding information.
-* Combine the advantanges of BM25 and dense vector. A vector retrieval model which is sensitive to the keywords overlap.
+* Combine the advantanges of BM25 and dense vector. A vector retrieval model which is sensitive to the keywords overlap. 例如考虑关键词的哈希相似度函数
 * Coherence-20/100和Top-20/100之间的差别说清楚，为什么用coherence不用top要说清，说服别人

@@ -257,6 +257,7 @@ class Agent:
                 order = torch.argsort(scores, descending=True)
                 best = r[order[0]]
                 generated_responses.append((c, r_, best))
+        # write the data in the last
         with open(path, 'w') as f:
             for c, r, g in generated_responses:
                 f.write(f'[CTX]: {c}\n[REF]: {r}\n[GEN]: {g}\n\n')

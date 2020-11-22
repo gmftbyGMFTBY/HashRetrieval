@@ -16,7 +16,7 @@ elif [ $mode = 'faiss' ]; then
     if [ $model = 'dual-bert' ]; then
         dim=768
     else
-        dim=128
+        dim=512
     fi
     python -m utils.searcher --dataset $dataset --mode $mode --model $model --dim $dim
 else
