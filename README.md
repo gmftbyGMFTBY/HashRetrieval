@@ -23,18 +23,18 @@ pip install -r requirements.txt
 ### 1.2 Prepare Dataset and Get Statistic
 
 * Prepare the datasets
-    1. Download the Preprocessed datasets by us from this link: [password is 8y39](https://pan.baidu.com/s/1Pc00hrJaMZjjHf2MMN9KkA):
+    1. Download the Preprocessed datasets by us from this [link (password 6mzz)](https://pan.baidu.com/s/1oCDx-s6JZiafIxPLxVi2sQ):
     
-    <center>The metadata of four datasets are shown<\center>
+        The metadata of four datasets are shown
     
-    |    Datasets    | Train  | Test    | Source |
-    |:--------------:|:------:|:-------:|:------:|
-    |   E-Commerce   | 500000 | 1000    | [Data](https://drive.google.com/file/d/154J-neBo20ABtSmJDvm7DK0eTuieAuvw/view)       |
-    |     Douban     | 500000 | 667     | [Data](https://github.com/MarkWuNLP/MultiTurnResponseSelection) |
-    |      Zh50w     | 994002 | 2998    | [Data](https://github.com/yangjianxin1/GPT2-chitchat)       |
-    | LCCC (partial) | 2000000| 10000   | [Data](https://github.com/thu-coai/CDial-GPT)       |
-    
-    _Note: Original Douban Multi-turn Datasets contains 1000 sessions in test split, but only 667 have the positive samples in it (legal)._
+        |    Datasets    | Train  | Test    | Source |
+        |:--------------:|:------:|:-------:|:------:|
+        |   E-Commerce   | 500000 | 1000    | [Data](https://drive.google.com/file/d/154J-neBo20ABtSmJDvm7DK0eTuieAuvw/view)       |
+        |     Douban     | 500000 | 667     | [Data](https://github.com/MarkWuNLP/MultiTurnResponseSelection) |
+        |      Zh50w     | 994002 | 2998    | [Data](https://github.com/yangjianxin1/GPT2-chitchat)       |
+        | LCCC (partial) | 2000000| 10000   | [Data](https://github.com/thu-coai/CDial-GPT)       |
+
+        _Note: Original Douban Multi-turn Datasets contains 1000 sessions in test split, but only 667 have the positive samples in it (legal)._
         
     2. Unzip the the zipped file:
         ```bash
@@ -157,7 +157,7 @@ Then you can find the sampled files under four `generated/<dataset_name>` folder
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
 | BM25         | **0.0376** | 0.07    | 0.8966       | 0.8253        | **44 Mb**   | **0.1901s/0.247s**     |
-| Dense (cpu)  | 0.0351 | 0.0778  | 0.9832       | 0.9726        | 4.8 Gb  |     |
+| Dense (cpu)  | 0.0351 | 0.0778  | 0.9832       | 0.9726        | 4.8 Gb  |    0.592s/0.6685s |
 | Dense (gpu)  | 0.0351 | **0.0778**  | **0.9832**       | **0.9726**        | 4.8 Gb  | 0.4586s/0.5722s    |
 
 **Conclusion:**
@@ -207,7 +207,7 @@ Then you can find the sampled files under four `generated/<dataset_name>` folder
 * 哈希方法相比于传统的BM25方法，保留了语义的相似度的极高的查询相关性
 * 虽然存储空间比BM25略大一点，但是注意我们使用的是512维哈希码存储，实际上128维的哈希码已经可以得到很好的效果同时128维的哈希码存储空间比BM25要小，即使是16维的哈希码，效果依然比BM25方法好，同时存储空间最小。
 
-### 2.3 Overall comparsion (Coarse retrieval + Cross-bert Post Rank)
+### 2.3 Overall Comparsion (Coarse retrieval + Cross-bert Post Rank)
 
 Human Evaluation
 * Each dataset have 500 samples to be annotated
@@ -314,15 +314,15 @@ _Note: Default Number the of Negative Samples is 16_
 | Method        | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :-----------: | :----------: | :-----------: | :-----: | :----------------: |
 | BM25          | 0.84         | 0.7341        | 10.8 Mb | 0.0915s/0.1228s    |
-| Hash-16 (gpu) | | | | |
-| Hash-32 (gpu) | | | | |
-| Hash-48 (gpu) | | | | |
-| Hash-64 (gpu) | | | | |
-| Hash-128 (gpu)| | | | |
+| Hash-16 (gpu) | 0.6703       | 0.6431        | 760 Kb  | 0.0093s/0.0163s    |
+| Hash-32 (gpu) | 0.7912       | 0.7557        | 1.5 Mb  | 0.005s/0.0065s     |
+| Hash-48 (gpu) | 0.8428       | 0.8101        | 2.3 Mb  | 0.0193s/0.0207s    |
+| Hash-64 (gpu) | 0.8685       | 0.836         | 3.0 Mb  | 0.0051s/0.0063s    |
+| Hash-128 (gpu)| 0.9108       | 0.8835        | 6.0 Mb  | 0.0094s/0.0174s    |
 | Hash-256 (gpu)| | | | |
-| Hash-512 (gpu)| 0.944        | 0.9223       | 24 Mb    | 0.0235s/0.028s     |
+| Hash-512 (gpu)| 0.944        | 0.9223        | 24 Mb   | 0.0235s/0.028s     |
 |Hash-1024 (gpu)| | | | |
-| Dense (gpu)   | 0.9655       | 0.9424       | 1.2 Gb   | 0.1224s/0.1283s    |
+| Dense (gpu)   | 0.9655       | 0.9424        | 1.2 Gb  | 0.1224s/0.1283s    |
 
 #### 2.5.1 The Number of the Negative Samples
 
@@ -349,6 +349,156 @@ _Note: Default Hash Code Size is 512_
 
 ### 3.2 Overall Case Study
 
+#### 3.2.1 E-Commerce Dataset
+* Case 1:
+    1. Context: 这快递咋回事啊有史以来最慢的一次
+    2. Reference: 您好
+    3. Dense: 不好意思亲最近EMS到广东的件都有点慢抱歉呢这边给亲催下
+    4. Hash: 您好不好意思这边快递下班了帮您留言催下
+    5. ES: 这是最慢的估算哦
+    
+* Case 2:
+    1. Context: 我今天买什么时候到什么时候发货 [SEP] 您好亲亲拍下后35天发货哦 [SEP] 这么晚呀哎
+    2. Reference: 恩呢
+    3. Dense: 亲亲我们拍下后35天发货的哦实在抱歉呢过年前订单量大
+    4. Hash: 亲亲我们是拍下35天发货哦
+    5. ES: 什么时候买的呢
+    
+* Case 3:
+    1. Context: 亲在线吗 [SEP] 在的呢 [SEP] 为什么还不发货
+    2. Reference: 客官榴莲干刚刚到货哦今明两天给您发货哦
+    3. Dense: 发货了呢
+    4. Hash: 实在抱歉呢大号红茶刀暂时缺货了哦估计要明后天才能发货了呢
+    5. ES: 已经出库了哦亲为什么退呢
+    
+* Case 4:
+    1. Context: 好的 [SEP] 您拍下给您改价 [SEP] 多久到新疆
+    2. Reference: 亲爱哒客官小店是从浙江嘉兴发货的哦一般发货后4-6天就能到您那边呢请您耐心等下哦
+    3. Dense: 大概23天哦
+    4. Hash: 发货后45tian天
+    5. ES: 您拍下我给您改价哦
+    
+* Case 5:
+    1. Context: 拍了尽量早点发谢谢 [SEP] 亲请核对一下收货地址哦 [SEP] 对的
+    2. Reference: 好的小店尽快给您发出哦
+    3. Dense: 好的小店明天给您发出哦
+    4. Hash: 好的小店明天给您发出哦
+    5. ES: 小二这边尽量给您快点发出哦亲请核对一下收货地址哦
+    
+* Case 6:
+    1. Context: 我买的洗衣皂怎么到了长沙又转其他地方了
+    2. Reference: 您好这边联系快递核实下
+    3. Dense: 您好帮亲联系下快递哦
+    4. Hash: 您好应该是中转这边联系快递催下吧
+    5. ES: 怎么可能又不是我转
+    
+* Case 7:
+    1. Context: 现货没有吗 [SEP] 有的哦订单量大实在抱歉呢 [SEP] 核桃质量咋样
+    2. Reference: 放心的哦亲亲
+    3. Dense: 挺不错哦
+    4. Hash: 都是新货哦我们不做陈货的呢奶香味足
+    5. ES: 订单量大实在抱歉让您久等了
+    
+* Case 8:
+    1. Context: 这个近期有优惠吗 [SEP] 本月16号有活动哦亲到时可以关注下呢 [SEP] 好的
+    2. Reference: 嗯嗯亲
+    3. Dense: 亲到时再关注下哦
+    4. Hash: 嗯嗯亲到时可以关注下呢
+    5. ES: 本月16号有周年庆的活动亲到时可以关注下的
+    
+* Case 9:
+    1. Context: 亲己经拍好了 [SEP] 好的 [SEP] 送点好的小吃给我尝一下 [SEP] 好的 [SEP] 好的话以后就选你家 [SEP] 好的呢亲 [SEP] 我是牺牲品多让我试吃 [SEP] 哈哈 [SEP] 我快要变成吃货了 [SEP] 哈哈一直都是吃货吧 [SEP] 所以说要把我这个吃货要哄好哦
+    2. Reference: 好的呢
+    3. Dense: 好的哈
+    4. Hash: 好的呢呢亲
+    5. ES: 一看您就是个吃货哈哈哈
+
+* Case 10:
+    1. Context: 哦哦日期新鲜吗现在还能发货吗 [SEP] 明后天发货哦 [SEP] 日期多少 [SEP] 33 [SEP] 用什么快递发货 [SEP] 亲爱哒客官小店默认邮政百世汇通天天快递哦 [SEP] 百世汇通 [SEP] 好的 [SEP] 付款了
+    2. Reference: 好的
+    3. Dense: 亲请核对一下收货地址哦今天给您发出哦
+    4. Hash: 亲请核对一下收货地址哦今天给您发出哦
+    5. ES: 好的亲爱哒客官小店默认邮政百世汇通天天快递哦
+
+#### 3.2.2 Douban Dataset
+
+#### 3.2.3 Zh50w Dataset
+
+#### 3.2.4 LCCC Dataset
+* Case 1:
+    1. Context: 喵的我都想转发了，救命这简直太好看了
+    2. Reference: 你也超好看的好吗！看到你我都不敢抬头了
+    3. Dense: 啊啊啊啊啊啊，想和全世界安利我的猫。
+    4. Hash: 实在是太好看了呜呜呜
+    5. ES: 救命啊我好委屈
+    
+* Case 2:
+    1. Context: 易烊千玺 [SEP] 这张吼吼看啊
+    2. Reference: 千玺那张不好看
+    3. Dense: 超超超超超级好看了
+    4. Hash: 特别特别好看呀
+    5. ES: 必须易烊千玺啊
+    
+* Case 3:
+    1. Context: 喘不过气。旁人还要觉得你矫情。 [SEP] 懂的，超难受
+    2. Reference: 别说了。很想死了。
+    3. Dense: 难受了找贴心的人说说聊聊，诉苦又不丢人。
+    4. Hash: 难受了找贴心的人说说聊聊，诉苦又不丢人。
+    5. ES: 你矫情啥。
+    
+* Case 4:
+    1. Context: 我也有心理阴影了可能不会尝试第二次了 [SEP] 我们吃别的！
+    2. Reference: 好好好吃别的好吃哒
+    3. Dense: 你吃的话那我们吃什么
+    4. Hash: 你吃的啥给我点建议呗
+    5. ES: 我可能这辈子不会再尝试第二次
+    
+* Case 5:
+    1. Context: 像我这么有智慧的人一般都没人知道 [SEP] 你女朋友需要吗
+    2. Reference: 你说的啥我不知道
+    3. Dense: 好像挺需要的
+    4. Hash: 根本不需要
+    5. ES: 不要自恋，所以你是真的有智慧
+    
+* Case 6:
+    1. Context: 内个女的很厉害！！
+    2. Reference: 这教育了我们不要随便领养小孩我的那个天啊伤不起啊真的最后那个翻转吓到我了
+    3. Dense: 我也觉得超厉害！一个女生！就更厉害了！
+    4. Hash: 我也觉得超厉害！一个女生！就更厉害了！
+    5. ES: 内个治百病
+    
+* Case 7:
+    1. Context: 今天真的帅呆了 [SEP] 问一下，这是在哪？
+    2. Reference: 上海宝马嘉年华活动
+    3. Dense: 就在网易背后小公园背后的地下广场里
+    4. Hash: 在西安外事学院南区门口对面
+    5. ES: 问一下，这是在哪？
+    
+* Case 8:
+    1. Context: 好吃么泰国美食 [SEP] 好吃！不过要根据攻略点，不然就是黑暗料理
+    2. Reference: 可以把你攻略发我一份么
+    3. Dense: 哈哈谢谢啦昨晚看了攻略啦明天就去
+    4. Hash: 你写的游记我很喜欢，作为一枚吃货，你介绍的美食我都去尝了，真的很好吃
+    5. ES: 无需要你的黑暗料理
+    
+* Case 9:
+    1. Context: 我也去过这个青龙镇，今年新开发的 [SEP] 还没收费
+    2. Reference: 我去的时候也是，刚刚开发出来，还没有收费
+    3. Dense: 怎么可能免费
+    4. Hash: 免费的就没价值了
+    5. ES: 我收费很贵的
+    
+* Case 10:
+    1. Context: 我现在看剧看到枯竭了推荐你个电影水果硬糖。特好看
+    2. Reference: 我看过了
+    3. Dense: 看过了，超甜，牙都甜掉了
+    4. Hash: 看过了，为什么要推荐这部？
+    5. ES: 不行了，枯竭了
+    
+**Conclusion:**
+1. 使用real-vector检索(Dense/Hash)往往召回的都是和上下文语义相关的回复，这一点上传统的BM25的检索方法都会导致很差的结果，比如利用错误的term召回回复或者回复和上下文语义根本不相近
+2. 
+
 ## 4. Test Configuration
 
 * Hardware: 
@@ -368,3 +518,5 @@ _Note: Default Hash Code Size is 512_
 * Combine the advantanges of BM25 and dense vector. A vector retrieval model which is sensitive to the keywords overlap. 例如考虑关键词的哈希相似度函数
 * Coherence-20/100和Top-20/100之间的差别说清楚，为什么用coherence不用top要说清，说服别人
 * 统计一下哈希码存储空间和语料存储空间的大小对比，凸显出哈希码对比于dense检索的优势
+* 现在的检索式对话系统依然不grounding，也是盲目的匹配最近语义的句子，比如在电商领域，发货时间信息等这些必须要有真是的数据作为支撑，不能无脑的选择最合适的句子作为回复，这样的回复里面的信息完全不grounding。我觉得解决这个问题的方法之一可以是加入更多的信息（比如这些grounding的信息）作为context。
+* Better deep hash representation model should be used

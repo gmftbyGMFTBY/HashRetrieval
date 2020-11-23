@@ -57,7 +57,7 @@ elif [ $mode = 'train' ]; then
         --seed 50 \
         --max_len 256 \
         --multi_gpu $cuda \
-        --hash_code_size 512 \
+        --hash_code_size 256 \
         --neg_samples $batch_size
 elif [ $mode = 'test' ]; then
     one_batch_model=(dual-bert)
@@ -86,7 +86,7 @@ elif [ $mode = 'inference' ]; then
         --max_len 256 \
         --seed 50 \
         --batch_size 32 \
-        --hash_code_size 512 \
+        --hash_code_size 256 \
         --neg_samples 16
         
     # reconstruct the results

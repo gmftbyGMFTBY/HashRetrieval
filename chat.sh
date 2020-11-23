@@ -13,7 +13,7 @@ faiss_cuda=$5
 if [ $coarse_mode = 'dense' ]; then
     dimension=768
 else
-    dimension=512
+    dimension=256
 fi
 
 CUDA_VISIBLE_DEVICES=$cuda python agent.py \

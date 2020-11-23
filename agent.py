@@ -286,15 +286,3 @@ if __name__ == "__main__":
         test_iter, 
         f'generated/{args["dataset"]}/{args["coarse"]}/rest.txt'
     )
-    
-    exit()
-    
-    # use bert-ruber or bert-ruber-ft metric to give the scores, which is a good replacement of the human evaluation
-    args['mode'] = 'test'
-    ruber_dataset = load_bert_ruber_dataset(args)
-    
-    bert_ruber_ft = RUBERMetric(args['gpu'], run_mode='test', ft=True)
-    bert_ruber_ft.inference(ruber_dataset)
-    
-    bert_ruber = RUBERMetric(args['gpu'], run_mode='test', ft=False)
-    bert_ruber.inference(ruber_dataset)
