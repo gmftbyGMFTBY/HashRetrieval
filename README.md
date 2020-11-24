@@ -5,7 +5,6 @@ The codes of the paper: Ultra-Fast and Low-Memory Open-Domain Retrieval Dialog S
 
 但是目前的开放域对话系统的粗筛检索模块中，大家基本上都是用的是基于term frequency的方法，这种方法会召回和上下文具有相同的词或者词组的回复，在QA等其他任务中这样的粗筛检索模块是有效的，这是因为具有和问题一样的词的答案极大概率就是包含有正确答案的那个。但是这在开放域对话系统中却并不一定，在开放域对话系统中，和上下文具有相同的词或者词组（主题）的句子未必就是最合适的恢复，这使得使用传统的粗筛检索模块并不能有效的选出最合适的候选回复，从而导致性能的下降，如下所示（仍然需要数据支撑这个观点）：
 
-
 * 上下文：我最喜欢的看惊悚和恐怖电影了
 * 回复：我喜欢看恐怖电影
 * 潜在候选回复：你为什么喜欢看这种猎奇类型呢
@@ -167,24 +166,26 @@ Then you can find the sampled files under four `generated/<dataset_name>` folder
 
 ### 2.2 Comparsion between Dense vector and Hash vector retrieval
 * Storage is the size of inverted index or the vector index.
-* default hash code size is 512.
+* default hash code size is 512/128.
 * default hash-bert batch size is 16.
 
 <center> <b> E-Commerce Dataset 109105 utterances (46.81%) </b> </center>
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
-| BM25         | 0.025  | 0.055   | 0.615        | 0.5122        | **2.9 Mb**  | 0.0895s/0.1294s    |
+| BM25         | 0.025  | 0.055   | 0.615        | 0.5122        | 2.9 Mb  | 0.0895s/0.1294s    |
 | Dense (gpu)  | 0.204  | **0.413**   | **0.9537**       | **0.9203**        | 320 Mb  | 0.3893s/0.4015s    |
-| Hash  (gpu)  | **0.214**  | 0.382   | 0.944        | 0.9065        | 6.7 Mb  | **0.0093s/0.0187s**    |
+| Hash-128 (gpu)  |  0.185  | 0.366 | 0.9252  | 0.8808  | **1.7 Mb** | **0.004s/0.0063s** | 
+| Hash-512 (gpu)  | **0.214**  | 0.382   | 0.944        | 0.9065        | 6.7 Mb  | 0.0093s/0.0187s    |  
 
 <center> <b> Douban Dataset 442280 utterances (54.47%) </b> </center>
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
-| BM25         | **0.063**  |  0.096  | 0.6957       | 0.6057        | **21.4 Mb** | 0.4487s/0.4997s    |
+| BM25         | **0.063** |  0.096  | 0.6957       | 0.6057        | 21.4 Mb | 0.4487s/0.4997s    |
 | Dense (gpu)  | 0.054  | **0.1049**  | **0.9403**       | **0.9067**        | 1.3 Gb  | 0.2s/0.1771s       |
-| Hash  (gpu)  | 0.0225 | 0.066   | 0.8838       | 0.8474        | 27 Mb   | **0.0523s/0.0452s**    |
+| Hash-128 (gpu)  |  0.012 | 0.0465  |  0.8375      |  0.8016       | **6.8 Mb**  | **0.0209s/0.0196s**    | 
+| Hash-512 (gpu)  | 0.0225 | 0.066   | 0.8838       | 0.8474        | 27 Mb   | 0.0523s/0.0452s    |
 
 <center> <b> Zh50w Dataset 388614 utterances (28.5%) </b> </center>
 
@@ -192,7 +193,8 @@ Then you can find the sampled files under four `generated/<dataset_name>` folder
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
 | BM25         | **0.0627** | **0.1031**  | 0.84         | 0.7341        | **10.8 Mb** | 0.0915s/0.1228s    |
 | Dense (gpu)  | 0.044  | 0.0824  | **0.9655**       | **0.9424**        | 1.2 Gb  | 0.1224s/0.1283s    |
-| Hash  (gpu)  | 0.0377 | 0.0934  | 0.944        | 0.9223        | 24 Mb   | **0.0235s/0.028s**     |
+| Hash-128 (gpu)  |    |  |   |   |  |  | 
+| Hash-512 (gpu)  | 0.0377 | 0.0934  | 0.944        | 0.9223        | 24 Mb   | **0.0235s/0.028s**     |
 
 <center> <b> LCCC Dataset 1651899 utterances (33.59%) </b> </center>
 
@@ -200,7 +202,8 @@ Then you can find the sampled files under four `generated/<dataset_name>` folder
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
 | BM25         | **0.0376** | 0.07    | 0.8966       | 0.8253        | **44 Mb**   | 0.1901s/0.247s     |
 | Dense (gpu)  | 0.0351 | **0.0778**  | **0.9832**       | **0.9726**        | 4.8 Gb  | 0.4586s/0.5722s    |
-| Hash  (gpu)  | 0.0204 | 0.0494  | 0.9663       | 0.9526        | 101 Mb  | **0.0764s/0.094s**     |
+| Hash-128 (gpu)  |    |  |   |   |  |  | 
+| Hash-512 (gpu)  | 0.0204 | 0.0494  | 0.9663       | 0.9526        | 101 Mb  | **0.0764s/0.094s**     |
 
 **Conclusion:**
 * 使用了哈希的方法之后，可以发现仅仅损失了相当少的性能损失，但是我们得到了极低的存储空间和几块的查询速度
@@ -292,7 +295,7 @@ Human Evaluation
 
 #### 2.4.1 Hash code size
 
-_Note: Default Number the of Negative Samples is 16_
+_Note: Default the Number of Negative Samples is 16_
 
 <center> <b> E-Commerce Dataset 109105 utterances (46.81%) </b> </center>
 
@@ -306,23 +309,23 @@ _Note: Default Number the of Negative Samples is 16_
 | Hash-128 (gpu)| 0.9278       | 0.8837        | 1.7 Mb  | 0.0023s/0.0044s    |
 | Hash-256 (gpu)| 0.9376       | 0.8976        | 3.4 Mb  | 0.0032s/0.0106s    |
 | Hash-512 (gpu)| 0.944        | 0.9065        | 6.7 Mb  | 0.0092s/0.0164s    |
-|Hash-1024 (gpu)| **0.9473**       | **0.9134**        | 14 Mb   | 0.0194s/0.0184s    |
-| Dense (gpu)   | **0.9537**       | **0.9203**        | 320 Mb  | 0.3893s/0.4015s    |
+|Hash-1024 (gpu)| **0.9473**   | **0.9134**    | 14 Mb   | 0.0194s/0.0184s    |
+| Dense (gpu)   | **0.9537**   | **0.9203**    | 320 Mb  | 0.3893s/0.4015s    |
 
 <center> <b> Zh50w Dataset 388614 utterances (28.5%) </b> </center>
 
 | Method        | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :-----------: | :----------: | :-----------: | :-----: | :----------------: |
 | BM25          | 0.84         | 0.7341        | 10.8 Mb | 0.0915s/0.1228s    |
-| Hash-16 (gpu) | 0.6703       | 0.6431        | 760 Kb  | 0.0093s/0.0163s    |
-| Hash-32 (gpu) | 0.7912       | 0.7557        | 1.5 Mb  | 0.005s/0.0065s     |
+| Hash-16 (gpu) | 0.6703       | 0.6431        | **760 Kb** | 0.0093s/0.0163s    |
+| Hash-32 (gpu) | 0.7912       | 0.7557        | 1.5 Mb  | **0.005s/0.0065s**     |
 | Hash-48 (gpu) | 0.8428       | 0.8101        | 2.3 Mb  | 0.0193s/0.0207s    |
 | Hash-64 (gpu) | 0.8685       | 0.836         | 3.0 Mb  | 0.0051s/0.0063s    |
 | Hash-128 (gpu)| 0.9108       | 0.8835        | 6.0 Mb  | 0.0094s/0.0174s    |
-| Hash-256 (gpu)| | | | |
+| Hash-256 (gpu)| 0.9353       | 0.9105        | 12 Mb   | 0.016s/0.0133s     |
 | Hash-512 (gpu)| 0.944        | 0.9223        | 24 Mb   | 0.0235s/0.028s     |
-|Hash-1024 (gpu)| | | | |
-| Dense (gpu)   | 0.9655       | 0.9424        | 1.2 Gb  | 0.1224s/0.1283s    |
+|Hash-1024 (gpu)| 0.9546       | 0.9336        | 48 Mb   | 0.0502s/0.0647s    |
+| Dense (gpu)   | **0.9655**   | **0.9424**    | 1.2 Gb  | 0.1224s/0.1283s    |
 
 #### 2.5.1 The Number of the Negative Samples
 
@@ -330,13 +333,13 @@ _Note: Default Hash Code Size is 512_
 
 <center> <b> E-Commerce Dataset 109105 utterances (46.81%) </b> </center>
 
-| Method        | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
+| Method (Negative Samples) | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :-----------: | :----------: | :-----------: | :-----: | :----------------: |
 | BM25          | 0.615        | 0.5122        | 8.8 Mb  | 0.0895s/0.1294s    |
-| Hash-16 (gpu) | **0.944**        | **0.9065**        | 6.7 Mb  | 0.0092s/0.0164s    |
-| Hash-32 (gpu) | 0.9412       | 0.9041        | 6.7 Mb  | 0.0084s/0.0134s    |
-| Hash-64 (gpu) | 0.9425       | 0.902         | 6.7 Mb  | 0.0089s/0.0122s    |
-| Hash-128 (gpu)| 0.9398       | 0.8974        | 6.7 Mb  | 0.0091s/0.0108s    |
+| 16 (gpu) | **0.944**        | **0.9065**        | 6.7 Mb  | 0.0092s/0.0164s    |
+| 32 (gpu) | 0.9412       | 0.9041        | 6.7 Mb  | 0.0084s/0.0134s    |
+| 64 (gpu) | 0.9425       | 0.902         | 6.7 Mb  | 0.0089s/0.0122s    |
+| 128 (gpu)| 0.9398       | 0.8974        | 6.7 Mb  | 0.0091s/0.0108s    |
 | Dense (gpu)   | **0.9537**       | **0.9203**        | 320 Mb  | 0.3893s/0.4015s    |
 
 **Conclusion:**
