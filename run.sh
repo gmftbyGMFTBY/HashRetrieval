@@ -57,7 +57,7 @@ elif [ $mode = 'train' ]; then
         --seed 50 \
         --max_len 256 \
         --multi_gpu $cuda \
-        --hash_code_size 128 \
+        --hash_code_size 512 \
         --neg_samples $batch_size
 elif [ $mode = 'test' ]; then
     one_batch_model=(dual-bert)
@@ -78,15 +78,15 @@ elif [ $mode = 'test' ]; then
 elif [ $mode = 'inference' ]; then
     # inference and generate the real-vector for the utterances (faiss uses it)
     gpu_ids=(${cuda//,/ })
-    CUDA_VISIBLE_DEVICES=$cuda python -m torch.distributed.launch --nproc_per_node=${#gpu_ids[@]} --master_addr 127.0.0.1 --master_port 29403 main.py \
+    CUDA_VISIBLE_DEVICES=$cuda python -m torch.distributed.launch --nproc_per_node=${#gpu_ids[@]} --master_addr 127.0.0.1 --master_port 29300 main.py \
         --mode inference \
         --dataset $dataset \
         --model $model \
         --multi_gpu $cuda \
         --max_len 256 \
         --seed 50 \
-        --batch_size 32 \
-        --hash_code_size 128 \
+        --batch_size 64 \
+        --hash_code_size 512 \
         --neg_samples 16
         
     # reconstruct the results

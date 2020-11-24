@@ -3,11 +3,7 @@ The codes of the paper: Ultra-Fast and Low-Memory Open-Domain Retrieval Dialog S
 
 现有的检索式开放域对话系统都主要分为两个阶段，分别是[粗筛检索和精细排序](https://dl.acm.org/doi/10.1145/3394486.3403211)。粗筛阶段目前都是使用BM25为主的term frequency的检索方法从预构建的语料库中选取和上下文主题比较相似的作为候选回复，精细排序阶段使用语义匹配模型从所有的候选回复中选取最合适的一个。目前大家的研究方向都放在构建一个更加精准的精细排序模型，但是目前，随着以bert为主的预训练模型逐渐在各个数据集的各个指标上取得了目前最好的成绩，精细排序模型的性能提升变得非常的困难，这使得提升检索式对话系统的主要瓶颈局限于如何构建一个更好更快的粗筛检索模块上。
 
-但是目前的开放域对话系统的粗筛检索模块中，大家基本上都是用的是基于term frequency的方法，这种方法会召回和上下文具有相同的词或者词组的回复，在QA等其他任务中这样的粗筛检索模块是有效的，这是因为具有和问题一样的词的答案极大概率就是包含有正确答案的那个。但是这在开放域对话系统中却并不一定，在开放域对话系统中，和上下文具有相同的词或者词组（主题）的句子未必就是最合适的恢复，这使得使用传统的粗筛检索模块并不能有效的选出最合适的候选回复，从而导致性能的下降，如下所示（仍然需要数据支撑这个观点）：
-
-* 上下文：我最喜欢的看惊悚和恐怖电影了
-* 回复：我喜欢看恐怖电影
-* 潜在候选回复：你为什么喜欢看这种猎奇类型呢
+但是目前的开放域对话系统的粗筛检索模块中，大家基本上都是用的是基于term frequency的方法，这种方法会召回和上下文具有相同的词或者词组的回复，在QA等其他任务中这样的粗筛检索模块是有效的，这是因为具有和问题一样的词的答案极大概率就是包含有正确答案的那个。但是这在开放域对话系统中却并不一定，在开放域对话系统中，和上下文具有相同的词或者词组（主题）的句子未必就是最合适的恢复，这使得使用传统的粗筛检索模块并不能有效的选出最合适的候选回复，从而导致性能的下降，参考Case Study的示例。同时我们在4个常用的开放域检索式对话系统数据集上进行了分析，发现可以上下文和回复之间存在overlap比例并不高。
 
 目前，real-vector检索已被证明可以提升QA系统的效果，但是real-vector是否可以有效的提升开放域对话系统仍然是一个待研究的问题。其次，目前的real-vector检索面临的主要问题就是存储空间大和查询速度相对慢的问题。我们也要提出一个基于Hash的vector语义检索模型，期望可以在不损失大量的效果的前提下，可以获得极快的查询速度和极低的存储大小，以促进检索式对话系统的实际应用和部署，比如移动设备上等（大量的内积运算消耗太多的能量和电力，使用哈希的方法可以极大的降低运算功率）。
 
@@ -24,16 +20,16 @@ pip install -r requirements.txt
 * Prepare the datasets
     1. Download the Preprocessed datasets by us from this [link (password 6mzz)](https://pan.baidu.com/s/1oCDx-s6JZiafIxPLxVi2sQ):
     
-        The metadata of four datasets are shown
+        The metadata of four datasets are shown as follows:
     
-        |    Datasets    | Train  | Test    | Source |
-        |:--------------:|:------:|:-------:|:------:|
-        |   E-Commerce   | 500000 | 1000    | [Data](https://drive.google.com/file/d/154J-neBo20ABtSmJDvm7DK0eTuieAuvw/view)       |
-        |     Douban     | 500000 | 667     | [Data](https://github.com/MarkWuNLP/MultiTurnResponseSelection) |
-        |      Zh50w     | 994002 | 2998    | [Data](https://github.com/yangjianxin1/GPT2-chitchat)       |
-        | LCCC (partial) | 2000000| 10000   | [Data](https://github.com/thu-coai/CDial-GPT)       |
+        |    Datasets    | Train  | Test    | Coherence Ratio | Source |
+        |:--------------:|:------:|:-------:| :--------------:|:------:|
+        |   E-Commerce   | 500000 | 1000    | 46.81%          | [Data](https://drive.google.com/file/d/154J-neBo20ABtSmJDvm7DK0eTuieAuvw/view)       |
+        |     Douban     | 500000 | 667     | 54.57%          | [Data](https://github.com/MarkWuNLP/MultiTurnResponseSelection) |
+        |      Zh50w     | 994002 | 2998    | 28.5%           |[Data](https://github.com/yangjianxin1/GPT2-chitchat)       |
+        | LCCC (partial) | 2000000| 10000   | 33.59%          |[Data](https://github.com/thu-coai/CDial-GPT)       |
 
-        _Note: Original Douban Multi-turn Datasets contains 1000 sessions in test split, but only 667 have the positive samples in it (legal)._
+        _Note: 1. Original Douban Multi-turn Datasets contains 1000 sessions in test split, but only 667 have the positive samples in it (legal); 2. Coherence ratoi represents the ratio of the samples that the responses can be found by the context._
         
     2. Unzip the the zipped file:
         ```bash
@@ -42,9 +38,9 @@ pip install -r requirements.txt
     3. Copy the `<dataset_name>/train.txt` and `<dataset_name>/test.txt` files to the corresponding dataset folder under `data`.
 
 * Get the statistic of these datasets
-```bash
-./run.sh statistic
-```
+    ```bash
+    ./run.sh statistic
+    ```
 
 ### 1.3 Train the dual-bert or hash-bert model
 
@@ -191,19 +187,19 @@ Then you can find the sampled files under four `generated/<dataset_name>` folder
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
-| BM25         | **0.0627** | **0.1031**  | 0.84         | 0.7341        | **10.8 Mb** | 0.0915s/0.1228s    |
+| BM25         | **0.0627** | **0.1031**  | 0.84         | 0.7341        | 10.8 Mb | 0.0915s/0.1228s    |
 | Dense (gpu)  | 0.044  | 0.0824  | **0.9655**       | **0.9424**        | 1.2 Gb  | 0.1224s/0.1283s    |
-| Hash-128 (gpu)  |    |  |   |   |  |  | 
-| Hash-512 (gpu)  | 0.0377 | 0.0934  | 0.944        | 0.9223        | 24 Mb   | **0.0235s/0.028s**     |
+| Hash-128 (gpu)  |  0.027  | 0.0724 |  0.9108 | 0.8835  | **6.0 Mb** | **0.0137s/0.0192s** | 
+| Hash-512 (gpu)  | 0.0377 | 0.0934  | 0.944        | 0.9223        | 24 Mb   | 0.0235s/0.028s     |
 
 <center> <b> LCCC Dataset 1651899 utterances (33.59%) </b> </center>
 
 | Method       | Top-20 | Top-100 | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
 | :----------: | :----: | :-----: | :----------: | :-----------: | :-----: | :----------------: |
-| BM25         | **0.0376** | 0.07    | 0.8966       | 0.8253        | **44 Mb**   | 0.1901s/0.247s     |
+| BM25         | **0.0376** | 0.07    | 0.8966       | 0.8253        | 44 Mb   | 0.1901s/0.247s     |
 | Dense (gpu)  | 0.0351 | **0.0778**  | **0.9832**       | **0.9726**        | 4.8 Gb  | 0.4586s/0.5722s    |
-| Hash-128 (gpu)  |    |  |   |   |  |  | 
-| Hash-512 (gpu)  | 0.0204 | 0.0494  | 0.9663       | 0.9526        | 101 Mb  | **0.0764s/0.094s**     |
+| Hash-128 (gpu)  | 0.014  | 0.0348  | 0.9369       | 0.9187        | **26 Mb** | **0.0204s/0.0244s** | 
+| Hash-512 (gpu)  | 0.0204 | 0.0494  | 0.9663       | 0.9526        | 101 Mb  | 0.0764s/0.094s     |
 
 **Conclusion:**
 * 使用了哈希的方法之后，可以发现仅仅损失了相当少的性能损失，但是我们得到了极低的存储空间和几块的查询速度
@@ -212,9 +208,10 @@ Then you can find the sampled files under four `generated/<dataset_name>` folder
 
 ### 2.3 Overall Comparsion (Coarse retrieval + Cross-bert Post Rank)
 
-Human Evaluation
-* Each dataset have 500 samples to be annotated
+[Human Evaluation (three labels classification)](https://arxiv.org/abs/2009.07543)
+* Each dataset have 200 samples to be annotated
 * 3 annotators are used
+* Top-100 coarse retrieval module and the cross-bert post rank model are used to generate the test responses.
 
 <table class="tg">
 <thead>
@@ -242,7 +239,7 @@ Human Evaluation
 </thead>
 <tbody>
   <tr>
-    <td class="tg-7btt">BM25</td>
+    <td class="tg-7btt">Dense vs. BM25</td>
     <td class="tg-c3ow"></td>
     <td class="tg-c3ow"></td>
     <td class="tg-c3ow"></td>
@@ -257,7 +254,7 @@ Human Evaluation
     <td class="tg-c3ow"></td>
   </tr>
   <tr>
-    <td class="tg-7btt">Dense</td>
+    <td class="tg-7btt">Hash vs. BM25</td>
     <td class="tg-c3ow"></td>
     <td class="tg-c3ow"></td>
     <td class="tg-c3ow"></td>
@@ -272,7 +269,7 @@ Human Evaluation
     <td class="tg-c3ow"></td>
   </tr>
   <tr>
-    <td class="tg-7btt">Hash</td>
+    <td class="tg-7btt">Dense vs. Hash</td>
     <td class="tg-c3ow"></td>
     <td class="tg-c3ow"></td>
     <td class="tg-c3ow"></td>
@@ -312,6 +309,21 @@ _Note: Default the Number of Negative Samples is 16_
 |Hash-1024 (gpu)| **0.9473**   | **0.9134**    | 14 Mb   | 0.0194s/0.0184s    |
 | Dense (gpu)   | **0.9537**   | **0.9203**    | 320 Mb  | 0.3893s/0.4015s    |
 
+<center> <b> Douban Dataset 109105 utterances (54.47%) </b> </center>
+
+| Method        | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
+| :-----------: | :----------: | :-----------: | :-----: | :----------------: |
+| BM25          | 0.6957       | 0.6057        | 21.4 Mb | 0.4487s/0.4997s    |
+| Hash-16 (gpu) |              |               |         |                    |
+| Hash-32 (gpu) |              |               |         |                    |
+| Hash-48 (gpu) |              |               |         |                    |
+| Hash-64 (gpu) |              |               |         |                    |
+| Hash-128 (gpu)| 0.8375       | 0.8016        | 6.8 Mb  | 0.0209s/0.0196s    |
+| Hash-256 (gpu)|              |               |         |                    |
+| Hash-512 (gpu)| 0.8838       | 0.8474        | 27 Mb   | 0.0523s/0.0452s    |
+|Hash-1024 (gpu)|              |               |         |                    |
+| Dense (gpu)   | 0.9403       | 0.9067        | 1.3 Gb  | 0.2s/0.1771s       |
+
 <center> <b> Zh50w Dataset 388614 utterances (28.5%) </b> </center>
 
 | Method        | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
@@ -326,6 +338,21 @@ _Note: Default the Number of Negative Samples is 16_
 | Hash-512 (gpu)| 0.944        | 0.9223        | 24 Mb   | 0.0235s/0.028s     |
 |Hash-1024 (gpu)| 0.9546       | 0.9336        | 48 Mb   | 0.0502s/0.0647s    |
 | Dense (gpu)   | **0.9655**   | **0.9424**    | 1.2 Gb  | 0.1224s/0.1283s    |
+
+<center> <b> LCCC Dataset 109105 utterances (33.59%) </b> </center>
+
+| Method        | Coherence-20 | Coherence-100 | Storage | Time Cost (20/100) |
+| :-----------: | :----------: | :-----------: | :-----: | :----------------: |
+| BM25          | 0.8966       | 0.8253        |  44 Mb  | 0.1901s/0.247s     |
+| Hash-16 (gpu) |              |               |         |                    |
+| Hash-32 (gpu) |              |               |         |                    |
+| Hash-48 (gpu) |              |               |         |                    |
+| Hash-64 (gpu) |              |               |         |                    |
+| Hash-128 (gpu)| 0.9369       | 0.9187        |  26 Mb  | 0.0204s/0.0244s    |
+| Hash-256 (gpu)|              |               |         |                    |
+| Hash-512 (gpu)| 0.9663       | 0.9526        |  101 Mb | 0.0764s/0.094s     |
+|Hash-1024 (gpu)|              |               |         |                    |
+| Dense (gpu)   | 0.9832       | 0.9726        |  4.8 Gb | 0.4586s/0.5722s    |
 
 #### 2.5.1 The Number of the Negative Samples
 

@@ -5,8 +5,7 @@ def parser_args():
     parser = argparse.ArgumentParser(description='train parameters')
     parser.add_argument('--dataset', default='zh50w', type=str)
     parser.add_argument('--seed', type=float, default=30)
-    parser.add_argument('--mode', type=str, default='export', help='export; calculate')
-    parser.add_argument('--samples', type=int, default=500)
+    parser.add_argument('--samples', type=int, default=200)
     return parser.parse_args()
 
 def read_dataset(folder, samples=500):
@@ -27,14 +26,17 @@ def read_dataset(folder, samples=500):
     es = [es[i] for i in sample_idx]
     return dense, hash, es
 
-def write_dataset(dense, hash, es, path):
-    with open(path, 'w') as f:
-        for d1, d2, d3 in zip(dense, hash, es):
-            c, r, g1 = d1
-            c, r, g2 = d2
-            c, r, g3 = d3
-            f.write(f'{c}\n{r}\n{g1}\n{g2}\n{g3}\n\n')
-    print(f'[!] write {len(dense)} samples into {path}')
+def write_dataset(dense, hash, es, path_handle):
+    def _write(d1, d2, path):
+        with open(path, 'w') as f:
+            for d1_, d2_ in zip(d1, d2):
+                c, r, g1 = d1_
+                c, r, g2 = d2_
+                f.write(f'{c}\n{r}\n{g1}\n{g2}\n\n')
+        print(f'[!] write {len(d1)} samples into {path}')
+    _write(dense, es, f'{path_handle}_dense_bm25.txt')
+    _write(hash, es, f'{path_handle}_hash_bm25.txt')
+    _write(dense, hash, f'{path_handle}_dense_hash.txt')
 
 if __name__ == "__main__":
     args = vars(parser_args())
@@ -46,5 +48,5 @@ if __name__ == "__main__":
         dense, 
         hash, 
         es, 
-        f'generated/{dataset}/{dataset}_sample_{samples}.txt',
+        f'generated/{dataset}/{dataset}_{samples}',
     )

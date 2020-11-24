@@ -5,5 +5,5 @@
 datasets=(ecommerce douban zh50w lccc)
 for d in ${datasets[@]}
 do
-    python -m utils.annotate --dataset $d --seed 50 --samples 500 --mode export
+    python -m utils.annotate --dataset $d --seed 50 --samples 200
 done
