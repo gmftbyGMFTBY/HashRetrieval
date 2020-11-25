@@ -29,20 +29,6 @@ def load_model(args):
             local_rank=args['local_rank'],
             path=args['pretrained_path'],
         )
-    elif model_name == 'bert-ruber':
-        agent = RUBERMetric(
-            args['multi_gpu'],
-            run_mode=args['mode'],
-            local_rank=args['local_rank'],
-            ft=False,
-        )
-    elif model_name == 'bert-ruber-ft':
-        agent = RUBERMetric(
-            args['multi_gpu'],
-            run_mode=args['mode'],
-            local_rank=args['local_rank'],
-            ft=True,
-        )
     else:
         raise Exception(f'[!] cannot find the model {args["model"]}')
     return agent
