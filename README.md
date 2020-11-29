@@ -690,3 +690,4 @@ _Note: Default Hash Code Size is 512_
 * 统计一下哈希码存储空间和语料存储空间的大小对比，凸显出哈希码对比于dense检索的优势
 * 现在的检索式对话系统依然不grounding，也是盲目的匹配最近语义的句子，比如在电商领域，发货时间信息等这些必须要有真是的数据作为支撑，不能无脑的选择最合适的句子作为回复，这样的回复里面的信息完全不grounding。我觉得解决这个问题的方法之一可以是加入更多的信息（比如这些grounding的信息）作为context。
 * Better deep hash representation model should be used
+* coherence ratio 重新计算

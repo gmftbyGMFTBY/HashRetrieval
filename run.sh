@@ -30,6 +30,7 @@ if [ $mode = 'init' ]; then
 elif [ $mode = 'statistic' ]; then
     python -m utils.statistic --dataset ecommerce
     python -m utils.statistic --dataset douban
+    python -m utils.statistic --dataset zh50w
 elif [ $mode = 'backup' ]; then
     cp ckpt/$dataset/$model/* bak/$dataset/$model/
     cp rest/$dataset/$model/event* bak/$dataset/$model/
