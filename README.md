@@ -1,12 +1,6 @@
 # HashRetrieval
 The codes of the paper: Ultra-Fast and Low-Memory Open-Domain Retrieval Dialog Systems by Using Semantic Hashing
 
-现有的检索式开放域对话系统都主要分为两个阶段，分别是[粗筛检索和精细排序](https://dl.acm.org/doi/10.1145/3394486.3403211)。粗筛阶段目前都是使用BM25为主的term frequency的检索方法从预构建的语料库中选取和上下文主题比较相似的作为候选回复，精细排序阶段使用语义匹配模型从所有的候选回复中选取最合适的一个。目前大家的研究方向都放在构建一个更加精准的精细排序模型，但是目前，随着以bert为主的预训练模型逐渐在各个数据集的各个指标上取得了目前最好的成绩，精细排序模型的性能提升变得非常的困难，这使得提升检索式对话系统的主要瓶颈局限于如何构建一个更好更快的粗筛检索模块上。
-
-但是目前的开放域对话系统的粗筛检索模块中，大家基本上都是用的是基于term frequency的方法，这种方法会召回和上下文具有相同的词或者词组的回复，在QA等其他任务中这样的粗筛检索模块是有效的，这是因为具有和问题一样的词的答案极大概率就是包含有正确答案的那个。但是这在开放域对话系统中却并不一定，在开放域对话系统中，和上下文具有相同的词或者词组（主题）的句子未必就是最合适的恢复，这使得使用传统的粗筛检索模块并不能有效的选出最合适的候选回复，从而导致性能的下降，参考Case Study的示例。同时我们在4个常用的开放域检索式对话系统数据集上进行了分析，发现可以上下文和回复之间存在overlap比例并不高。
-
-目前，real-vector检索已被证明可以提升QA系统的效果，但是real-vector是否可以有效的提升开放域对话系统仍然是一个待研究的问题。其次，目前的real-vector检索面临的主要问题就是存储空间大和查询速度相对慢的问题。我们也要提出一个基于Hash的vector语义检索模型，期望可以在不损失大量的效果的前提下，可以获得极快的查询速度和极低的存储大小，以促进检索式对话系统的实际应用和部署，比如移动设备上等（大量的内积运算消耗太多的能量和电力，使用哈希的方法可以极大的降低运算功率）。
-
 ## 1. How to Use
 ### 1.1 Init this repo
 
@@ -217,71 +211,87 @@ Then you can find the sampled files under four `generated/<dataset_name>` folder
 <thead>
   <tr>
     <th class="tg-7btt" rowspan="2">Models</th>
-    <th class="tg-7btt" colspan="3">E-Commerce</th>
-    <th class="tg-7btt" colspan="3">Douban</th>
-    <th class="tg-7btt" colspan="3">Zh50w</th>
-    <th class="tg-7btt" colspan="3">LCCC</th>
+    <th class="tg-7btt" colspan="4">E-Commerce</th>
+    <th class="tg-7btt" colspan="4">Douban</th>
+    <th class="tg-7btt" colspan="4">Zh50w</th>
+    <th class="tg-7btt" colspan="4">LCCC</th>
   </tr>
   <tr>
     <td class="tg-7btt">Win</td>
     <td class="tg-7btt">Loss</td>
     <td class="tg-7btt">Tie</td>
+    <td class="tg-7btt">Kappa</td>
     <td class="tg-7btt">Win</td>
     <td class="tg-7btt">Loss</td>
     <td class="tg-7btt">Tie</td>
+    <td class="tg-7btt">Kappa</td>
     <td class="tg-7btt">Win</td>
     <td class="tg-7btt">Loss</td>
     <td class="tg-7btt">Tie</td>
+    <td class="tg-7btt">Kappa</td>
     <td class="tg-7btt">Win</td>
     <td class="tg-7btt">Loss</td>
     <td class="tg-7btt">Tie</td>
+    <td class="tg-7btt">Kappa</td>
   </tr>
 </thead>
 <tbody>
   <tr>
     <td class="tg-7btt">Dense vs. BM25</td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
+    <td class="tg-c3ow">0.5917</td>
+    <td class="tg-c3ow">0.2117</td>
+    <td class="tg-c3ow">0.1967</td>
+    <td class="tg-c3ow">0.7679</td>
+    <td class="tg-c3ow"><b>0.4783</b></td>
+      <td class="tg-c3ow"><b>0.1883</b></td>
+    <td class="tg-c3ow">0.3333</td>
+    <td class="tg-c3ow">0.8240</td>
+      <td class="tg-c3ow"><b>0.5017</b></td>
+      <td class="tg-c3ow"><b>0.2683</b></td>
+    <td class="tg-c3ow">0.23</td>
+    <td class="tg-c3ow">0.7143</td>
+    <td class="tg-c3ow">0.5233</td>
+    <td class="tg-c3ow">0.305</td>
+    <td class="tg-c3ow">0.1717</td>
+    <td class="tg-c3ow">0.5558</td>
   </tr>
   <tr>
     <td class="tg-7btt">Hash vs. BM25</td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
+    <td class="tg-c3ow"><b>0.6017</b></td>
+    <td class="tg-c3ow"><b>0.1933</b></td>
+    <td class="tg-c3ow">0.205</td>
+    <td class="tg-c3ow">0.6733</td>
+    <td class="tg-c3ow">0.4767</td>
+    <td class="tg-c3ow">0.2783</td>
+    <td class="tg-c3ow">0.245</td>
+    <td class="tg-c3ow">0.8506</td>
+    <td class="tg-c3ow">0.4733</td>
+    <td class="tg-c3ow">0.335</td>
+    <td class="tg-c3ow">0.1917</td>
+    <td class="tg-c3ow">0.727</td>
+      <td class="tg-c3ow"><b>0.5317</b></td>
+      <td class="tg-c3ow"><b>0.27</b></td>
+    <td class="tg-c3ow">0.1983</td>
+    <td class="tg-c3ow">0.7115</td>
   </tr>
   <tr>
     <td class="tg-7btt">Dense vs. Hash</td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
-    <td class="tg-c3ow"></td>
+    <td class="tg-c3ow">0.3133</td>
+    <td class="tg-c3ow">0.2683</td>
+    <td class="tg-c3ow"><b>0.4183</b></td>
+    <td class="tg-c3ow">0.7025</td>
+    <td class="tg-c3ow">0.375</td>
+    <td class="tg-c3ow">0.2217</td>
+      <td class="tg-c3ow"><b>0.4033</b></td>
+    <td class="tg-c3ow">0.8251</td>
+    <td class="tg-c3ow">0.395</td>
+    <td class="tg-c3ow">0.2833</td>
+      <td class="tg-c3ow"><b>0.3217</b></td>
+    <td class="tg-c3ow">0.6679</td>
+    <td class="tg-c3ow">0.3283</td>
+    <td class="tg-c3ow">0.3733</td>
+      <td class="tg-c3ow"><b>0.2983</b></td>
+    <td class="tg-c3ow">0.7716</td>
   </tr>
 </tbody>
 </table>
